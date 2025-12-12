@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'screens/phone_login_screen.dart';
+import 'screens/gold_rate.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -32,7 +33,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: '/',
+
       routes: {'/': (context) => const PhoneLoginScreen()},
+      // routes: {'/': (context) => const GoldRatesScreen()},
     );
   }
 }
