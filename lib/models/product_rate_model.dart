@@ -7,6 +7,7 @@ class ProductRateModel {
   final String unit;
   final String userId;
   final int timestamp;
+  final String remarks;
 
   ProductRateModel({
     required this.id,
@@ -15,6 +16,7 @@ class ProductRateModel {
     required this.unit,
     required this.userId,
     required this.timestamp,
+    this.remarks = '',
   });
 
   factory ProductRateModel.fromSnapshot(DocumentSnapshot snap) {
@@ -26,6 +28,7 @@ class ProductRateModel {
       unit: snapshot["unit"] ?? 'N/A',
       userId: snapshot["userId"] ?? 'N/A',
       timestamp: (snapshot["timestamp"] as num).toInt(),
+      remarks: snapshot["remarks"] ?? '',
     );
   }
 
@@ -35,5 +38,6 @@ class ProductRateModel {
     "unit": unit,
     "userId": userId,
     "timestamp": timestamp,
+    "remarks": remarks,
   };
 }

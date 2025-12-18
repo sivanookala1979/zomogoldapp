@@ -8,24 +8,8 @@ import '../models/product_rate_model.dart';
 
 const Color _kPrimaryColor = Color(0xFF673AB7);
 const Color _kBackgroundColor = Color(0xFFF3F0F9);
-const Color _kCardColor = Colors.white;
-const double _kCardRadius = 12.0;
-const TextStyle _kLabelStyle = TextStyle(
-  color: Colors.black54,
-  fontSize: 14.0,
-  fontWeight: FontWeight.w400,
-);
-const TextStyle _kRateValueStyle = TextStyle(
-  color: Colors.black,
-  fontSize: 32.0,
-  fontWeight: FontWeight.w600,
-  letterSpacing: -0.5,
-);
-const TextStyle _kRateUnitStyle = TextStyle(
-  color: Colors.black54,
-  fontSize: 16.0,
-  fontWeight: FontWeight.w400,
-);
+
+enum AdminTab { rateUpdate, productUpdate }
 
 class GoldRatesScreen extends StatefulWidget {
   const GoldRatesScreen({super.key});
@@ -35,17 +19,20 @@ class GoldRatesScreen extends StatefulWidget {
 }
 
 class _GoldRatesScreenState extends State<GoldRatesScreen> {
+  AdminTab _activeTab = AdminTab.rateUpdate;
+  final PageController _pageController = PageController();
   final ProductRateDao _rateDao = ProductRateDao();
-  final String _currentUserId =
-      'admin'; // TODO: Replace with actual user authentication ID
 
-  String goldPrice = 'N/A';
-  String goldUpdateTimestamp = 'N/A';
-  String silverPrice = 'N/A';
-  String silverUpdateTimestamp = 'N/A';
+  String selectedMetal = 'GOLD';
+  String goldPriceFormatted = 'N/A';
+  String silverPriceFormatted = 'N/A';
+  double goldRawPrice = 0.0;
+  double silverRawPrice = 0.0;
+  String updateTimestamp = 'N/A';
+  bool isLoading = false;
 
-  bool isGoldLoading = false;
-  String goldError = '';
+  final TextEditingController _manualRateController = TextEditingController();
+  final TextEditingController _remarksController = TextEditingController();
 
   @override
   void initState() {
@@ -53,127 +40,387 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
     fetchLiveRates();
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _manualRateController.dispose();
+    _remarksController.dispose();
+    super.dispose();
+  }
+
   Future<void> fetchLiveRates() async {
-    if (mounted) {
-      setState(() {
-        isGoldLoading = true;
-        goldError = '';
-      });
-    }
+    if (!mounted) return;
+    setState(() => isLoading = true);
 
     try {
-      String apiTimestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final url = Uri.parse(
-        'https://statewisebcast.dpgold.in:7768/VOTSBroadcastStreaming/Services/xml/GetLiveRateByTemplateID/dpgold?_= $apiTimestamp',
+        'https://statewisebcast.dpgold.in:7768/VOTSBroadcastStreaming/Services/xml/GetLiveRateByTemplateID/dpgold?_=$timestamp',
       );
       final response = await http.get(url);
-
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         final Map<String, dynamic> ratesData = _parseLiveRates(response.body);
-
-        final String formattedGoldPrice = ratesData['goldPriceFormatted'];
-        final String formattedSilverPrice = ratesData['silverPriceFormatted'];
-        final double goldPriceRaw = ratesData['goldPriceRaw'];
-        final double silverPriceRaw = ratesData['silverPriceRaw'];
-
         final now = DateTime.now();
-        final int millisecondTimestamp = now.millisecondsSinceEpoch;
-        if (goldPriceRaw > 0) {
-          final goldRateModel = ProductRateModel(
-            id: 'GOLD_$millisecondTimestamp',
-            productType: 'GOLD',
-            price: goldPriceRaw,
-            unit: 'per 10g',
-            userId: _currentUserId,
-            timestamp: millisecondTimestamp,
-          );
-          await _rateDao.addRateEntry(goldRateModel);
-        }
-
-        if (silverPriceRaw > 0) {
-          final silverRateModel = ProductRateModel(
-            id: 'SILVER_$millisecondTimestamp',
-            productType: 'SILVER',
-            price: silverPriceRaw,
-            unit: 'per KG',
-            userId: _currentUserId,
-            timestamp: millisecondTimestamp,
-          );
-          await _rateDao.addRateEntry(silverRateModel);
-        }
-
         if (mounted) {
           setState(() {
-            goldPrice = formattedGoldPrice;
-            silverPrice = formattedSilverPrice;
-            goldUpdateTimestamp =
-                'Last updated on ${TimeOfDay.fromDateTime(now).format(context)}, ${now.day} ${monthName(now.month)} ${now.year}';
-            silverUpdateTimestamp =
-                'Last updated on ${TimeOfDay.fromDateTime(now).format(context)}, ${now.day} ${monthName(now.month)} ${now.year}';
-            isGoldLoading = false;
+            goldPriceFormatted = ratesData['goldPriceFormatted'];
+            silverPriceFormatted = ratesData['silverPriceFormatted'];
+            goldRawPrice = ratesData['goldPriceRaw'];
+            silverRawPrice = ratesData['silverPriceRaw'];
+            updateTimestamp =
+                'Last updated on ${TimeOfDay.fromDateTime(now).format(context)}, ${now.day} ${_monthName(now.month)} ${now.year}';
+            isLoading = false;
           });
         }
-      } else {
-        throw Exception('API Status: ${response.statusCode}');
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          final msg = e.toString();
-          goldError = msg.length > 80
-              ? 'Error: ${msg.substring(0, 80)}...'
-              : 'Error: $msg';
-          isGoldLoading = false;
-        });
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  Map<String, dynamic> _parseLiveRates(String body) {
-    String foundGoldFormatted = 'N/A';
-    double foundGoldRaw = 0.0;
-    String foundSilverFormatted = 'N/A';
-    double foundSilverRaw = 0.0;
-    List<String> lines = body.split('\n');
+  Future<void> _handleManualUpdate() async {
+    final String enteredValue = _manualRateController.text.trim();
+    final double? manualPrice = double.tryParse(enteredValue);
+    final double livePrice = selectedMetal == 'GOLD'
+        ? goldRawPrice
+        : silverRawPrice;
+    if (manualPrice == null || manualPrice <= 0) {
+      _showSnackBar('Please enter a valid rate');
+      return;
+    }
 
+    if (livePrice > 0) {
+      double tolerance = livePrice * 0.05;
+      if ((manualPrice - livePrice).abs() > tolerance) {
+        _showSnackBar('Rate is too far from live market rate!');
+        return;
+      }
+    }
+
+    try {
+      final int timestamp = DateTime.now().millisecondsSinceEpoch;
+      final model = ProductRateModel(
+        id: '${selectedMetal}_$timestamp',
+        productType: selectedMetal,
+        price: manualPrice,
+        unit: selectedMetal == 'GOLD' ? 'per 1g' : 'per KG',
+        userId: 'admin',
+        timestamp: timestamp,
+        remarks: _remarksController.text.trim(),
+      );
+
+      await _rateDao.addRateEntry(model);
+      _showSnackBar('$selectedMetal rate updated successfully!');
+      _manualRateController.clear();
+      _remarksController.clear();
+    } catch (e) {
+      _showSnackBar('Error updating rate: $e');
+    }
+  }
+
+  void _showSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _kBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: _kBackgroundColor,
+        elevation: 0,
+        leading: const Icon(Icons.arrow_back, color: Colors.black),
+        title: const Text('Admin', style: TextStyle(color: Colors.black)),
+      ),
+      body: Column(
+        children: [
+          _buildUnifiedToggles(),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _activeTab == AdminTab.rateUpdate
+                ? _buildRateUpdateView()
+                : _buildProductUpdateView(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRateUpdateView() {
+    return Column(
+      children: [
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 220,
+          child: PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() => selectedMetal = index == 0 ? 'GOLD' : 'SILVER');
+            },
+            children: [
+              _buildRateCard('GOLD', goldPriceFormatted, 'per 1g'),
+              _buildRateCard('SILVER', silverPriceFormatted, 'per KG'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                Text(
+                  'UPDATE $selectedMetal RATE',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildFormTextField(
+                  _manualRateController,
+                  'Update new rate (Per ${selectedMetal == 'GOLD' ? 'gram/tola' : 'kg'})',
+                  keyboard: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _buildFormTextField(
+                    _remarksController,
+                    'Remarks',
+                    isMultiline: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildUpdateRateButton(),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProductUpdateView() {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      children: [
+        _buildProductRow('Metal Name', 'Platinum'),
+        _buildProductRow('Weight', ''),
+        _buildProductRow('Stone Weight', ''),
+        _buildProductRow('Stone cost', '', isCurrency: true),
+        _buildProductRow('Making charges\nDiscount', ''),
+      ],
+    );
+  }
+
+  Widget _buildUnifiedToggles() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          _tabButton('Rate update', AdminTab.rateUpdate),
+          _tabButton('Product update', AdminTab.productUpdate),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabButton(String title, AdminTab tab) {
+    bool isActive = _activeTab == tab;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _activeTab = tab),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive ? _kPrimaryColor : Colors.white,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.black54,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormTextField(
+    TextEditingController controller,
+    String hint, {
+    bool isMultiline = false,
+    TextInputType keyboard = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboard,
+      maxLines: isMultiline ? null : 1,
+      expands: isMultiline,
+      textAlignVertical: isMultiline
+          ? TextAlignVertical.top
+          : TextAlignVertical.center,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: _kPrimaryColor, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductRow(
+    String label,
+    String initial, {
+    bool isCurrency = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 25),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: SizedBox(
+              height: 48,
+              child: TextField(
+                decoration: InputDecoration(
+                  prefixText: isCurrency ? '₹ ' : null,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: _kPrimaryColor),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRateCard(String metal, String price, String unit) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'CURRENT $metal RATE',
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.history, color: _kPrimaryColor),
+                onPressed: fetchLiveRates,
+              ),
+            ],
+          ),
+          const Spacer(),
+          if (isLoading)
+            const CircularProgressIndicator(color: _kPrimaryColor)
+          else ...[
+            Text(
+              price,
+              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              unit,
+              style: const TextStyle(color: Colors.black54, fontSize: 16),
+            ),
+          ],
+          const Spacer(),
+          Text(
+            updateTimestamp,
+            style: const TextStyle(color: Colors.black54, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpdateRateButton() {
+    return ElevatedButton(
+      onPressed: _handleManualUpdate,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _kPrimaryColor,
+        minimumSize: const Size(double.infinity, 55),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+      child: const Text(
+        'Update Rate',
+        style: TextStyle(color: Colors.white, fontSize: 16),
+      ),
+    );
+  }
+
+  Map<String, dynamic> _parseLiveRates(String body) {
+    double goldRaw = 0.0;
+    double silverRaw = 0.0;
+    List<String> lines = body.split('\n');
     for (String line in lines) {
       if (line.contains('GOLD') &&
           line.contains('999') &&
           line.contains('/ 10 Gm')) {
         List<String> cols = line.split('\t');
-        if (cols.length >= 6) {
-          foundGoldRaw = double.tryParse(cols[3]) ?? 0.0;
-          foundGoldFormatted = '₹${_formatPrice(cols[3])}';
-        }
+        if (cols.length >= 6) goldRaw = double.tryParse(cols[3]) ?? 0.0;
       } else if (line.contains('SILVER 30 KG PAN India')) {
         List<String> cols = line.split('\t');
-        if (cols.length >= 6) {
-          foundSilverRaw = double.tryParse(cols[3]) ?? 0.0;
-          foundSilverFormatted = '₹${_formatPrice(cols[3])}';
-        }
+        if (cols.length >= 6) silverRaw = double.tryParse(cols[3]) ?? 0.0;
       }
-      if (foundGoldRaw > 0 && foundSilverRaw > 0) break;
     }
-
     return {
-      'goldPriceFormatted': foundGoldFormatted,
-      'goldPriceRaw': foundGoldRaw,
-      'silverPriceFormatted': foundSilverFormatted,
-      'silverPriceRaw': foundSilverRaw,
+      'goldPriceFormatted': '₹${goldRaw.toStringAsFixed(2)}',
+      'goldPriceRaw': goldRaw,
+      'silverPriceFormatted': '₹${silverRaw.toStringAsFixed(2)}',
+      'silverPriceRaw': silverRaw,
     };
   }
 
-  String _formatPrice(String price) {
-    try {
-      final double value = double.tryParse(price) ?? 0.0;
-      return value.toStringAsFixed(2);
-    } catch (e) {
-      return price;
-    }
-  }
-
-  String monthName(int month) {
-    const months = [
+  String _monthName(int month) {
+    const m = [
       '',
       'Jan',
       'Feb',
@@ -188,193 +435,6 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
       'Nov',
       'Dec',
     ];
-    return months[month];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _kBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: _kBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Admin',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),
-        ),
-      ),
-      body: Column(
-        children: [
-          _buildRateProductToggles(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 20.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 250,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _buildRateCard(
-                          title: 'CURRENT GOLD RATE',
-                          rate: goldPrice,
-                          unit: 'per 10g',
-                          updateInfo: goldUpdateTimestamp,
-                          isLoading: isGoldLoading,
-                          error: goldError,
-                        ),
-                        const SizedBox(width: 16),
-                        _buildRateCard(
-                          title: 'CURRENT SILVER RATE',
-                          rate: silverPrice,
-                          unit: 'per KG',
-                          updateInfo: silverUpdateTimestamp,
-                          isLoading: isGoldLoading,
-                          error: goldError,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRateProductToggles() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0),
-      padding: const EdgeInsets.all(4.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: 10.0,
-                horizontal: 16.0,
-              ),
-              decoration: BoxDecoration(
-                color: _kPrimaryColor,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Center(
-                child: Text(
-                  'Rate update',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 10.0,
-                horizontal: 16.0,
-              ),
-              child: Center(
-                child: Text(
-                  'Product update',
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRateCard({
-    required String title,
-    required String rate,
-    required String unit,
-    required String updateInfo,
-    required bool isLoading,
-    required String error,
-  }) {
-    final cardWidth = MediaQuery.of(context).size.width * 0.9;
-
-    return Container(
-      width: cardWidth,
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: _kCardColor,
-        borderRadius: BorderRadius.circular(_kCardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: _kLabelStyle.copyWith(
-                  letterSpacing: 0.5,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              GestureDetector(
-                onTap: fetchLiveRates,
-                child: const Icon(Icons.history, color: _kPrimaryColor),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Center(
-              child: isLoading
-                  ? const CircularProgressIndicator(color: _kPrimaryColor)
-                  : error.isNotEmpty
-                  ? Text(
-                      error,
-                      style: const TextStyle(color: Colors.red, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(rate, style: _kRateValueStyle),
-                        Text(unit, style: _kRateUnitStyle),
-                      ],
-                    ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(updateInfo, style: _kLabelStyle),
-        ],
-      ),
-    );
+    return m[month];
   }
 }
