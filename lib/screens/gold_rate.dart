@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:zomogoldapp/screens/product_details.dart';
 
 import '../dao/product_rate_dao.dart';
 import '../models/product_rate_model.dart';
@@ -139,10 +140,11 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
           Expanded(
             child: _activeTab == AdminTab.rateUpdate
                 ? _buildRateUpdateView()
-                : _buildProductUpdateView(),
+                : const ProductDetailsPage(),
           ),
         ],
       ),
+
     );
   }
 
@@ -201,19 +203,6 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
     );
   }
 
-  Widget _buildProductUpdateView() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      children: [
-        _buildProductRow('Metal Name', 'Platinum'),
-        _buildProductRow('Weight', ''),
-        _buildProductRow('Stone Weight', ''),
-        _buildProductRow('Stone cost', '', isCurrency: true),
-        _buildProductRow('Making charges\nDiscount', ''),
-      ],
-    );
-  }
-
   Widget _buildUnifiedToggles() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -232,7 +221,8 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
   }
 
   Widget _tabButton(String title, AdminTab tab) {
-    bool isActive = _activeTab == tab;
+    final isActive = _activeTab == tab;
+
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _activeTab = tab),
