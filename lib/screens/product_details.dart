@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../dao/product_dao.dart';
+import '../models/product_model.dart';
 
 const Color primaryPurple = Color(0xFF7F55B5);
 
@@ -39,6 +44,9 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   late QuillController _productDetailsController;
   late QuillController _specificationsController;
+  final FocusNode _productDetailsFocus = FocusNode();
+  final FocusNode _specificationsFocus = FocusNode();
+
 
   bool _hallmarkAvailable = false;
   String _weightUnit = 'Select';
@@ -62,6 +70,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     _discountController.dispose();
     _productDetailsController.dispose();
     _specificationsController.dispose();
+    _productDetailsFocus.dispose();
+    _specificationsFocus.dispose();
     super.dispose();
   }
 
@@ -179,7 +189,42 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     );
   }
 
-  Widget _buildRichTextEditor(QuillController controller, String hint) {
+  Future<List<String>> _uploadImages(String productId) async {
+    List<String> downloadUrls = [];
+
+    for (int i = 0; i < _extraImages.length; i++) {
+      try {
+        final ref = FirebaseStorage.instance.ref(
+          "products/$productId/image_$i.jpg",
+        );
+
+        UploadTask uploadTask;
+
+        if (kIsWeb) {
+          uploadTask = ref.putData(_extraImages[i]);
+        } else {
+          uploadTask = ref.putFile(_extraImages[i]);
+        }
+
+        final snapshot = await uploadTask;
+        final url = await snapshot.ref.getDownloadURL();
+
+        debugPrint("✅ IMAGE UPLOADED: $url");
+        downloadUrls.add(url);
+      } catch (e, s) {
+        debugPrint("❌ STORAGE ERROR: $e");
+        debugPrint("$s");
+      }
+    }
+
+    return downloadUrls;
+  }
+
+  Widget _buildRichTextEditor(
+      QuillController controller,
+      String hint,
+      FocusNode focusNode,
+      ) {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
@@ -202,23 +247,37 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ),
           ),
           const Divider(height: 1),
-          Container(
-            height: 150,
-            padding: const EdgeInsets.all(12),
-            child: QuillEditor.basic(
-              controller: controller,
-              config: QuillEditorConfig(
-                placeholder: hint,
-                autoFocus: false,
-                expands: false,
-                scrollable: true,
-                padding: EdgeInsets.zero,
+          GestureDetector(
+            onTap: () => FocusScope.of(context).requestFocus(focusNode),
+            child: Container(
+              height: 150,
+              padding: const EdgeInsets.all(12),
+              child: QuillEditor(
+                controller: controller,
+                focusNode: focusNode,
+                scrollController: ScrollController(),
+                config: QuillEditorConfig(
+                  placeholder: hint,
+                  autoFocus: false,
+                  expands: false,
+                  scrollable: true,
+                  padding: EdgeInsets.zero,
+                ),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+
+  double _toDouble(TextEditingController c) {
+    return double.tryParse(c.text.trim()) ?? 0.0;
+  }
+
+  String _quillToJson(QuillController controller) {
+    return jsonEncode(controller.document.toDelta().toJson());
   }
 
   @override
@@ -403,14 +462,16 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             _buildSectionLabel("Product Details"),
             _buildRichTextEditor(
               _productDetailsController,
-              "Enter product story, highlights, etc...",
+              "Enter product story...",
+              _productDetailsFocus,
             ),
 
-            _buildSectionLabel("Specifications"),
             _buildRichTextEditor(
               _specificationsController,
-              "Size, Purity, Clarity, etc...",
+              "Enter specifications...",
+              _specificationsFocus,
             ),
+
 
             const SizedBox(height: 16),
 
@@ -448,24 +509,42 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           ],
         ),
         child: ElevatedButton(
-          onPressed: () {
-            final productDetailsJson = _productDetailsController.document
-                .toDelta()
-                .toJson();
-            final specificationsJson = _specificationsController.document
-                .toDelta()
-                .toJson();
+          onPressed: () async {
+            try {
+              final productDao = ProductDao();
 
-            debugPrint("Details JSON: $productDetailsJson");
-            debugPrint("Specs JSON: $specificationsJson");
+              final productId = (await productDao.generateNextProductId())
+                  .toString();
+              final imageUrls = await _uploadImages(productId);
+              final product = ProductModel(
+                productId: productId,
+                categoryId: "",
+                userId: "",
+                images: imageUrls,
+                metalName: _selectedMetal,
+                weight: _toDouble(_stoneWeightController),
+                purity: 0.0,
+                makingCharges: _toDouble(_makingChargesController),
+                discount: _toDouble(_discountController),
+                tagId: "",
+                productInformation: _quillToJson(_productDetailsController),
+                specifications: _quillToJson(_specificationsController),
+                hallmark: _hallmarkAvailable,
+                customizable: false,
+                createdTimestamp: DateTime.now(),
+                modifiedTimestamp: DateTime.now(),
+              );
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  "Product details and specifications saved as JSON!",
-                ),
-              ),
-            );
+              await productDao.addProduct(product);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Product saved successfully")),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("Save failed: $e")));
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryPurple,

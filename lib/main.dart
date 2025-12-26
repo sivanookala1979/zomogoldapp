@@ -17,6 +17,7 @@ Future<void> main() async {
         appId: "1:616832457082:web:9be2cc9543707eceff5ec3",
         messagingSenderId: "616832457082",
         projectId: "zomo-1f300",
+        storageBucket: "zomo-1f300.firebasestorage.app"
       ),
     );
   } else {
