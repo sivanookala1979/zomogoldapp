@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +23,7 @@ class GoldRatesScreen extends StatefulWidget {
 
 class _GoldRatesScreenState extends State<GoldRatesScreen> {
   AdminTab _activeTab = AdminTab.rateUpdate;
+  final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
   final ProductRateDao _rateDao = ProductRateDao();
 
@@ -42,8 +42,21 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
   void initState() {
     super.initState();
     fetchLiveRates();
+    _scrollController.addListener(_handleScroll);
   }
 
+  void _handleScroll() {
+    double offset = _scrollController.offset;
+    double maxScroll = _scrollController.position.maxScrollExtent;
+
+    String newMetal = offset > (maxScroll / 2) ? 'SILVER' : 'GOLD';
+
+    if (newMetal != selectedMetal) {
+      setState(() {
+        selectedMetal = newMetal;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -149,26 +162,41 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child:SizedBox(
-              height: 280,
-              child: ScrollConfiguration(
-                behavior: const _WebScrollBehavior(),
-                child: PageView(
-                  onPageChanged: (index) {
-                    setState(() {
-                      selectedMetal = index == 0 ? 'GOLD' : 'SILVER';
-                    });
-                  },
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildRateCard('GOLD', goldPriceFormatted, 'per 1g'),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildRateCard('SILVER', silverPriceFormatted, 'per KG'),
-                    ),
-                  ],
+            child: RawScrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              thickness: 8,
+              radius: const Radius.circular(20),
+              thumbColor: _kPrimaryColor.withOpacity(0.9),
+              interactive: true,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 20.0),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  physics: const PageScrollPhysics(),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: screenWidth - 32,
+                        height: 280,
+                        child: _buildRateCard(
+                          'GOLD',
+                          goldPriceFormatted,
+                          'per 1g',
+                        ),
+                      ),
+                      SizedBox(
+                        width: screenWidth - 32,
+                        height: 280,
+                        child: _buildRateCard(
+                          'SILVER',
+                          silverPriceFormatted,
+                          'per KG',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -484,14 +512,3 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
     return m[month];
   }
 }
-class _WebScrollBehavior extends MaterialScrollBehavior {
-  const _WebScrollBehavior();
-
-  @override
-  Set<PointerDeviceKind> get dragDevices => {
-    PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,
-    PointerDeviceKind.trackpad,
-  };
-}
-
