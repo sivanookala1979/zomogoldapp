@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'grid_screen.dart';
+import 'home_screen.dart';
 
 class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
@@ -23,7 +24,15 @@ class SearchScreen extends StatelessWidget {
                 color: const Color(0xFFFAF5FF),
                 child: Row(
                   children: [
-                    const Icon(Icons.arrow_back_ios, size: 20),
+                    IconButton(
+                      icon: const  Icon(Icons.arrow_back, size: 20),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => HomeScreen()),
+                        );
+                      },
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Container(

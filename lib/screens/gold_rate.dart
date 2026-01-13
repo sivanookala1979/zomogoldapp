@@ -8,6 +8,7 @@ import 'package:zomogoldapp/screens/product_details.dart';
 import '../dao/product_rate_dao.dart';
 import '../models/product_rate_model.dart';
 import 'history_screen.dart';
+import 'home_screen.dart';
 
 const Color _kPrimaryColor = Color(0xFF673AB7);
 const Color _kBackgroundColor = Color(0xFFF3F0F9);
@@ -136,7 +137,15 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
       appBar: AppBar(
         backgroundColor: _kBackgroundColor,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back, color: Colors.black),
+        leading:  IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => HomeScreen()),
+            );
+          },
+        ),
         title: const Text('Admin', style: TextStyle(color: Colors.black)),
       ),
       body: Column(

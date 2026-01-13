@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:zomogoldapp/screens/history_screen.dart';
+import 'package:zomogoldapp/screens/home_screen.dart';
 
 import 'screens/phone_login_screen.dart';
 import 'screens/gold_rate.dart';
@@ -45,7 +46,7 @@ class MyApp extends StatelessWidget {
       supportedLocales: const [Locale('en', 'US')],
       initialRoute: '/',
       routes: {
-        '/': (context) => const PhoneLoginScreen(),
+        '/': (context) => const HomeScreen(),
         // '/': (context) => const GoldRatesScreen(),
         '/history': (context) {
           final String type =

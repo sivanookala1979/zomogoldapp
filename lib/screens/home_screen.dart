@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zomogoldapp/screens/gold_rate.dart';
 import 'package:zomogoldapp/screens/search_screen.dart';
 
 MaterialColor createMaterialColor(Color color) {
@@ -20,7 +21,6 @@ MaterialColor createMaterialColor(Color color) {
   }
   return MaterialColor(color.value, swatch);
 }
-
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -57,13 +57,19 @@ class HomeScreen extends StatelessWidget {
         ),
         centerTitle: false,
         actions: <Widget>[
-          IconButton(icon: const Icon(Icons.search, color: Colors.black), onPressed: () { Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SearchScreen(),
-            ),
-          );}),
-          IconButton(icon: const Icon(Icons.favorite_border, color: Colors.black), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.black),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SearchScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.favorite_border, color: Colors.black),
+            onPressed: () {},
+          ),
         ],
       ),
 
@@ -90,11 +96,7 @@ class HomeScreen extends StatelessWidget {
             _buildShopByPeopleRow(),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20.0),
-              child: Divider(
-                color: Color(0xFFDDDDDD),
-                thickness: 1,
-                height: 1,
-              ),
+              child: Divider(color: Color(0xFFDDDDDD), thickness: 1, height: 1),
             ),
             _buildAboutUsSection(context),
             const SizedBox(height: 20),
@@ -104,6 +106,7 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
+
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -144,12 +147,7 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
-          _buildPillButton(
-            context,
-            'Gold',
-            Icons.circle,
-            Colors.amber,
-          ),
+          _buildPillButton(context, 'Gold', Icons.circle, Colors.amber),
           _buildPillButton(
             context,
             'Silver',
@@ -307,15 +305,17 @@ class HomeScreen extends StatelessWidget {
             'Zomo jewellers Pvt.Ltd.\nHyderabad, India',
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 14,
-                color: Colors.black,
-                fontWeight: FontWeight.w500
+              fontSize: 14,
+              color: Colors.black,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
       ),
     );
-  }  Widget _buildBottomNavBar(BuildContext context) {
+  }
+
+  Widget _buildBottomNavBar(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -337,6 +337,14 @@ class HomeScreen extends StatelessWidget {
         showUnselectedLabels: true,
         currentIndex: 0,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+        onTap: (index) {
+          if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => GoldRatesScreen()),
+            );
+          }
+        },
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home_sharp),
