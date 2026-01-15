@@ -97,7 +97,7 @@ class _GridScreenState extends State<GridScreen> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 0.62,
+          childAspectRatio: 0.63,
         ),
         itemBuilder: (context, index) {
           if (index >= _products.length) {
