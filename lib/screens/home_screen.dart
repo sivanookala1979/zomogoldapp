@@ -1,25 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:zomogoldapp/screens/gold_rate.dart';
 import 'package:zomogoldapp/screens/search_screen.dart';
 
-MaterialColor createMaterialColor(Color color) {
-  List strengths = <double>[.05];
-  final swatch = <int, Color>{};
-  final int r = color.red, g = color.green, b = color.blue;
+import 'gold_rate.dart';
 
-  for (int i = 1; i < 10; i++) {
-    strengths.add(0.1 * i);
-  }
-  for (var strength in strengths) {
-    final double ds = 0.5 - strength;
-    swatch[(strength * 1000).round()] = Color.fromRGBO(
-      r + ((ds < 0 ? r : (255 - r)) * ds).round(),
-      g + ((ds < 0 ? g : (255 - g)) * ds).round(),
-      b + ((ds < 0 ? b : (255 - b)) * ds).round(),
-      1,
-    );
-  }
-  return MaterialColor(color.value, swatch);
+void main() {
+  runApp(
+    const MaterialApp(home: HomeScreen(), debugShowCheckedModeBanner: false),
+  );
 }
 
 class HomeScreen extends StatelessWidget {
@@ -45,62 +32,77 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color backgroundColor = const Color(0xFFFBF4FF);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: backgroundColor,
         elevation: 0,
-        title: const Text(
-          'Logo',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Row(
+              children: [
+                const Text(
+                  'Logo',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.black),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SearchScreen()),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.favorite_border, color: Colors.black),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+          ),
         ),
-        centerTitle: false,
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SearchScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.favorite_border, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
       ),
-
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildBanner(),
-            const SizedBox(height: 20),
-
-            _buildSectionTitle('Shop By'),
-            const SizedBox(height: 10),
-            _buildShopByChips(context),
-            const SizedBox(height: 20),
-
-            _buildSectionTitle('Shop by category'),
-            const SizedBox(height: 10),
-            _buildCategoryGrid(),
-            const SizedBox(height: 20),
-
-            _buildSectionTitle('Shop by'),
-            const SizedBox(height: 10),
-            _buildShopByPeopleRow(),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20.0),
-              child: Divider(color: Color(0xFFDDDDDD), thickness: 1, height: 1),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const SizedBox(height: 10),
+                _buildBanner(isMobile),
+                const SizedBox(height: 30),
+                _buildSectionTitle('Shop By'),
+                const SizedBox(height: 15),
+                _buildShopByChips(context, isMobile),
+                const SizedBox(height: 30),
+                _buildSectionTitle('Shop by category'),
+                const SizedBox(height: 15),
+                _buildCategoryGrid(),
+                const SizedBox(height: 30),
+                _buildSectionTitle('Shop by'),
+                const SizedBox(height: 15),
+                _buildShopByPeopleRow(screenWidth > 1024),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40.0, horizontal: 16),
+                  child: Divider(color: Color(0xFFDDDDDD), thickness: 1),
+                ),
+                _buildAboutUsSection(context),
+                const SizedBox(height: 60),
+              ],
             ),
-            _buildAboutUsSection(context),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(context),
@@ -113,7 +115,7 @@ class HomeScreen extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 18,
+          fontSize: 22,
           fontWeight: FontWeight.bold,
           color: Colors.black,
         ),
@@ -121,19 +123,20 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBanner() {
+  Widget _buildBanner(bool isMobile) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.0),
-        child: Container(
-          height: 300,
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFBE4D2),
-            image: DecorationImage(
-              image: AssetImage('assets/home_image.png'),
-              fit: BoxFit.cover,
+      child: AspectRatio(
+        aspectRatio: isMobile ? 16 / 9 : 21 / 7,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16.0),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFFBE4D2),
+              image: DecorationImage(
+                image: AssetImage('assets/home_image.png'),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),
@@ -141,20 +144,34 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildShopByChips(BuildContext context) {
+  Widget _buildShopByChips(BuildContext context, bool isMobile) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 16,
         children: <Widget>[
-          _buildPillButton(context, 'Gold', Icons.circle, Colors.amber),
+          _buildPillButton(
+            context,
+            'Gold',
+            Icons.circle,
+            Colors.amber,
+            isMobile,
+          ),
           _buildPillButton(
             context,
             'Silver',
             Icons.horizontal_rule,
             Colors.grey,
+            isMobile,
           ),
-          _buildPillButton(context, 'Diamond', Icons.diamond, Colors.blueGrey),
+          _buildPillButton(
+            context,
+            'Diamond',
+            Icons.diamond,
+            Colors.blueGrey,
+            isMobile,
+          ),
         ],
       ),
     );
@@ -164,41 +181,33 @@ class HomeScreen extends StatelessWidget {
     BuildContext context,
     String title,
     IconData icon,
-    Color iconColor, {
-    bool isSelected = false,
-  }) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: OutlinedButton(
-          onPressed: () {},
-          style: OutlinedButton.styleFrom(
-            backgroundColor: isSelected ? Colors.white : Colors.transparent,
-            side: BorderSide(
-              color: isSelected
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey.shade300,
-              width: isSelected ? 2.0 : 1.0,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 10),
+    Color iconColor,
+    bool isMobile,
+  ) {
+    return SizedBox(
+      width: isMobile ? (MediaQuery.of(context).size.width / 3) - 22 : 180,
+      child: OutlinedButton(
+        onPressed: () {},
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          side: BorderSide(color: Colors.grey.shade300),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Icon(icon, size: 18, color: iconColor),
-              const SizedBox(width: 4),
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: iconColor),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -212,34 +221,35 @@ class HomeScreen extends StatelessWidget {
         shrinkWrap: true,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4,
-          childAspectRatio: 0.8,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+          childAspectRatio: 0.85,
+          crossAxisSpacing: 15,
+          mainAxisSpacing: 15,
         ),
         itemCount: mainCategories.length,
         itemBuilder: (context, index) {
           final category = mainCategories[index];
           return Column(
             children: <Widget>[
-              // Image Box
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.0),
-                  border: Border.all(color: Colors.grey.shade300, width: 1),
-                  image: DecorationImage(
-                    image: AssetImage(category['imageAsset']),
-                    fit: BoxFit.cover,
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12.0),
+                    border: Border.all(color: Colors.grey.shade200),
+                    image: DecorationImage(
+                      image: AssetImage(category['imageAsset']),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
-              // Label
+              const SizedBox(height: 8),
               Text(
                 category['name'] as String,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.black),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -249,35 +259,34 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildShopByPeopleRow() {
+  Widget _buildShopByPeopleRow(bool isDesktop) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Wrap(
+        spacing: 30,
+        runSpacing: 20,
+        alignment: isDesktop ? WrapAlignment.start : WrapAlignment.center,
         children: shopByPeople.map((person) {
           return Column(
             children: <Widget>[
-              // Circular Image
               Container(
-                width: 90,
-                height: 90,
+                width: isDesktop ? 130 : 100,
+                height: isDesktop ? 130 : 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                  border: Border.all(color: Colors.grey.shade200),
                   image: DecorationImage(
                     image: AssetImage(person['imageAsset']),
                     fit: BoxFit.cover,
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
-              // Label
+              const SizedBox(height: 10),
               Text(
                 person['name'] as String,
                 style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -288,27 +297,22 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildAboutUsSection(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         children: [
           Text(
             'About us',
-            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
+              color: Colors.purple,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 10),
+          Text(
             'Zomo jewellers Pvt.Ltd.\nHyderabad, India',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.black54, height: 1.5),
           ),
         ],
       ),
@@ -346,22 +350,13 @@ class HomeScreen extends StatelessWidget {
           }
         },
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_sharp),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_sharp), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.apps_sharp),
             label: 'Category',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Orders'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
