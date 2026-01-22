@@ -40,7 +40,6 @@ class _GridScreenState extends State<GridScreen> {
 
   Future<void> _fetchProducts() async {
     if (_isLoading) return;
-
     setState(() => _isLoading = true);
 
     Query query = FirebaseFirestore.instance
@@ -60,7 +59,6 @@ class _GridScreenState extends State<GridScreen> {
       _lastDoc = snap.docs.last;
       _products.addAll(snap.docs.map((e) => ProductModel.fromSnapshot(e)));
     }
-
     setState(() => _isLoading = false);
   }
 
@@ -73,49 +71,88 @@ class _GridScreenState extends State<GridScreen> {
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth < 600;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF6F3FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        centerTitle: false,
         leading: const BackButton(color: Colors.black),
-        title: const Text('', style: TextStyle(color: Colors.black)),
-        actions: const [
-          Icon(Icons.search, color: Colors.black),
-          SizedBox(width: 12),
-          Icon(Icons.favorite_border, color: Colors.black),
-          SizedBox(width: 12),
-          Icon(Icons.shopping_cart_outlined, color: Colors.black),
-          SizedBox(width: 12),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Women's jewellery",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              "Found ${_products.length} products",
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.black),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.favorite_border, color: Colors.black),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: GridView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(12),
-        itemCount: _products.length + (_isLoading ? 1 : 0),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.63,
-        ),
-        itemBuilder: (context, index) {
-          if (index >= _products.length) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final product = _products[index];
-
-          return FutureBuilder<double>(
-            future: _getRate(product.metalName),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const SizedBox();
+      body: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 24),
+          child: GridView.builder(
+            controller: _scrollController,
+            itemCount: _products.length + (_isLoading ? 1 : 0),
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: isMobile ? screenWidth / 2 : 280,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: isMobile ? 0.65 : 0.78,
+            ),
+            itemBuilder: (context, index) {
+              if (index >= _products.length) {
+                return const Center(child: CircularProgressIndicator());
               }
-              return ProductCard(product: product, ratePerGram: snapshot.data!);
+
+              final product = _products[index];
+
+              return FutureBuilder<double>(
+                future: _getRate(product.metalName),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    );
+                  }
+                  return ProductCard(
+                    product: product,
+                    ratePerGram: snapshot.data!,
+                  );
+                },
+              );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }
