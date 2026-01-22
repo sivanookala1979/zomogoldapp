@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart' hide Text;
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
 
 import '../dao/product_dao.dart';
@@ -21,12 +21,10 @@ class ProductDetailsViewPage extends StatefulWidget {
 
 class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
   final ProductDao _productDao = ProductDao();
-
   ProductModel? product;
-  double goldRate = 0;
+  double metalRate = 0;
   double mrp = 0;
   double sellingPrice = 0;
-
   int _currentPage = 0;
   bool loading = true;
 
@@ -43,19 +41,15 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
         fetchedProduct.metalName,
       );
 
-      final basePrice = PriceCalculator.calculateBasePrice(
-        weight: fetchedProduct.weight,
-        ratePerUnit: rate,
-      );
-
-      final makingChargeAmount = PriceCalculator.calculateMakingCharges(
-        basePrice: basePrice,
-        makingChargePercent: fetchedProduct.makingCharges,
-      );
-
-      final calculatedMrp = PriceCalculator.calculateMRP(
-        basePrice: basePrice,
-        makingChargeAmount: makingChargeAmount,
+      final calculatedMrp = PriceCalculator.calculateProductMRP(
+        metalName: fetchedProduct.metalName,
+        carats: fetchedProduct.carats,
+        metalGrams: fetchedProduct.metalGrams,
+        metalRate: rate,
+        stoneWeight: fetchedProduct.stoneWeight,
+        stoneCost: fetchedProduct.stoneCost,
+        makingChargeValue: fetchedProduct.makingCharges,
+        makingChargeType: "Flat",
       );
 
       final calculatedSellingPrice = PriceCalculator.calculateSellingPrice(
@@ -65,7 +59,7 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
 
       setState(() {
         product = fetchedProduct;
-        goldRate = rate;
+        metalRate = rate;
         mrp = calculatedMrp;
         sellingPrice = calculatedSellingPrice;
         loading = false;
@@ -86,53 +80,66 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
+    if (loading)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    if (product == null) {
+    if (product == null)
       return const Scaffold(body: Center(child: Text("Product not found")));
-    }
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        actions: const [
-          Icon(Icons.favorite_border),
-          SizedBox(width: 16),
-          Icon(Icons.share),
-          SizedBox(width: 12),
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.black),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.favorite_border, color: Colors.black),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 280,
-              child: PageView.builder(
-                itemCount: product!.images.length,
-                onPageChanged: (i) => setState(() => _currentPage = i),
-                itemBuilder: (_, i) => Image.network(
-                  product!.images[i],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: SizedBox(
+                  height: 300,
+                  child: PageView.builder(
+                    itemCount: product!.images.length,
+                    onPageChanged: (i) => setState(() => _currentPage = i),
+                    itemBuilder: (_, i) =>
+                        Image.network(product!.images[i], fit: BoxFit.cover),
+                  ),
                 ),
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 product!.images.length,
                 (i) => Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == i ? 18 : 6,
-                  height: 6,
+                  width: _currentPage == i ? 24 : 8,
+                  height: 8,
                   decoration: BoxDecoration(
                     color: _currentPage == i
                         ? primaryPurple
@@ -143,70 +150,126 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product!.metalName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        product!.metalName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.favorite_border,
+                            color: Colors.black54,
+                          ),
+                          const SizedBox(width: 16),
+                          const Icon(
+                            Icons.share_outlined,
+                            color: Colors.black54,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 8),
+
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        "₹ ${mrp.toStringAsFixed(0)}",
+                        "₹ ${mrp.toStringAsFixed(2)}",
                         style: const TextStyle(
+                          fontSize: 16,
                           decoration: TextDecoration.lineThrough,
                           color: Colors.grey,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Text(
-                        "₹ ${sellingPrice.toStringAsFixed(0)}",
+                        "₹ ${sellingPrice.toStringAsFixed(2)}",
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 4),
                   const Text(
-                    "MRP incl. of all taxes",
+                    "MRP Incl. of all taxes",
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
 
-                  /// Info Chips
                   Row(
                     children: [
-                      _infoChip("${product!.purity}% Purity"),
-                      const SizedBox(width: 8),
-                      _infoChip("Making ${product!.makingCharges}%"),
-                      const SizedBox(width: 8),
-                      if (product!.hallmark) _infoChip("Hallmarked"),
+                      _infoChip("${product!.carats} karat"),
+                      const SizedBox(width: 12),
+                      _infoChip("${product!.makingCharges}% Making charges"),
                     ],
                   ),
+
+                  const SizedBox(height: 30),
+
+                  _expandableSection(
+                    "Product details",
+                    product!.productInformation,
+                  ),
+                  const SizedBox(height: 12),
+                  _expandableSection("Specifications", product!.specifications),
+
+                  const SizedBox(height: 30),
+
+                  const Text(
+                    "You May Also Like",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    height: 200,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 3,
+                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                      itemBuilder: (context, index) => Container(
+                        width: 160,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.grey.shade100,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: product!.images.isNotEmpty
+                              ? Image.network(
+                                  product!.images[0],
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(Icons.image),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            _expandableSection("Product details", product!.productInformation),
-            _expandableSection("Specifications", product!.specifications),
-
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -215,14 +278,37 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
 
   Widget _infoChip(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircleAvatar(
+            radius: 10,
+            backgroundColor: Color(0xFFFFD700),
+            child: Icon(Icons.circle, size: 12, color: Colors.orange),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
   }

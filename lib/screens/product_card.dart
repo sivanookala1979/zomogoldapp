@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:zomogoldapp/screens/product_view_page.dart';
-
 import '../models/price_calculator.dart';
 import '../models/product_model.dart';
 
@@ -16,19 +15,15 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final basePrice = PriceCalculator.calculateBasePrice(
-      weight: product.weight,
-      ratePerUnit: ratePerGram,
-    );
-
-    final makingCharge = PriceCalculator.calculateMakingCharges(
-      basePrice: basePrice,
-      makingChargePercent: product.makingCharges,
-    );
-
-    final mrp = PriceCalculator.calculateMRP(
-      basePrice: basePrice,
-      makingChargeAmount: makingCharge,
+    final mrp = PriceCalculator.calculateProductMRP(
+      metalName: product.metalName,
+      carats: product.carats,
+      metalGrams: product.metalGrams,
+      metalRate: ratePerGram,
+      stoneWeight: product.stoneWeight,
+      stoneCost: product.stoneCost,
+      makingChargeValue: product.makingCharges,
+      makingChargeType: "Flat",
     );
 
     final sellingPrice = PriceCalculator.calculateSellingPrice(
@@ -41,8 +36,7 @@ class ProductCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                ProductDetailsViewPage(productId: product.productId),
+            builder: (_) => ProductDetailsViewPage(productId: product.productId),
           ),
         );
       },
@@ -59,36 +53,22 @@ class ProductCard extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: AspectRatio(
-                aspectRatio: 0.9,
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(14),
-                      ),
-                      child: product.images.isNotEmpty
-                          ? Image.network(
-                              product.images.first,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                            )
-                          : _imagePlaceholder(),
-                    ),
-                    const Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Icon(Icons.favorite_border, color: Colors.white),
-                    ),
-                  ],
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                child: product.images.isNotEmpty
+                    ? Image.network(
+                  product.images.first,
+                  fit: BoxFit.cover,
+                )
+                    : Container(
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.image_not_supported, size: 40),
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
@@ -97,18 +77,11 @@ class ProductCard extends StatelessWidget {
                 children: [
                   Text(
                     '₹ ${sellingPrice.toStringAsFixed(0)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '₹ ${mrp.toStringAsFixed(0)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       decoration: TextDecoration.lineThrough,
                       fontSize: 10,
@@ -128,14 +101,6 @@ class ProductCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _imagePlaceholder() {
-    return Container(
-      color: Colors.grey.shade200,
-      alignment: Alignment.center,
-      child: const Icon(Icons.image_not_supported, size: 40),
     );
   }
 }

@@ -6,10 +6,11 @@ class ProductModel {
   final String userId;
   final List<String> images;
   final String metalName;
-  final double weight;
-  final double cost;
-  final String weightUnit;
-  final String costUnit;
+  final String carats;
+  final double metalGrams;
+  final double stoneWeight;
+  final double stoneCost;
+  final String stoneWeightUnit;
   final double purity;
   final double makingCharges;
   final double discount;
@@ -17,7 +18,6 @@ class ProductModel {
   final String productInformation;
   final String specifications;
   final bool hallmark;
-  final bool customizable;
   final DateTime createdTimestamp;
   final DateTime modifiedTimestamp;
 
@@ -27,10 +27,11 @@ class ProductModel {
     required this.userId,
     required this.images,
     required this.metalName,
-    required this.weight,
-    required this.cost,
-    required this.weightUnit,
-    required this.costUnit,
+    required this.carats,
+    required this.metalGrams,
+    required this.stoneWeight,
+    required this.stoneCost,
+    required this.stoneWeightUnit,
     required this.purity,
     required this.makingCharges,
     required this.discount,
@@ -38,7 +39,6 @@ class ProductModel {
     required this.productInformation,
     required this.specifications,
     required this.hallmark,
-    required this.customizable,
     required this.createdTimestamp,
     required this.modifiedTimestamp,
   });
@@ -52,10 +52,11 @@ class ProductModel {
       userId: data["userId"],
       images: List<String>.from(data["images"] ?? []),
       metalName: data["metalName"],
-      weight: (data["weight"] ?? 0).toDouble(),
-      cost: (data["cost"] ?? 0).toDouble(),
-      weightUnit: data["weightUnit"],
-      costUnit: data["costUnit"],
+      carats: data["carats"] ?? "Select",
+      metalGrams: (data["metalGrams"] ?? 0).toDouble(),
+      stoneWeight: (data["stoneWeight"] ?? 0).toDouble(),
+      stoneCost: (data["stoneCost"] ?? 0).toDouble(),
+      stoneWeightUnit: data["stoneWeightUnit"],
       purity: (data["purity"] ?? 0).toDouble(),
       makingCharges: (data["makingCharges"] ?? 0).toDouble(),
       discount: (data["discount"] ?? 0).toDouble(),
@@ -63,11 +64,8 @@ class ProductModel {
       productInformation: data["productInformation"],
       specifications: data["specifications"] ?? "",
       hallmark: data["hallmark"] ?? false,
-      customizable: data["customizable"] ?? false,
-      createdTimestamp:
-      (data["createdTimestamp"] as Timestamp).toDate(),
-      modifiedTimestamp:
-      (data["modifiedTimestamp"] as Timestamp).toDate(),
+      createdTimestamp: (data["createdTimestamp"] as Timestamp).toDate(),
+      modifiedTimestamp: (data["modifiedTimestamp"] as Timestamp).toDate(),
     );
   }
 
@@ -78,10 +76,11 @@ class ProductModel {
       "userId": userId,
       "images": images,
       "metalName": metalName,
-      "weight": weight,
-      "cost": cost,
-      "weightUnit": weightUnit,
-      "costUnit": costUnit,
+      "carats": carats,
+      "metalGrams": metalGrams,
+      "stoneWeight": stoneWeight,
+      "stoneCost": stoneCost,
+      "stoneWeightUnit": stoneWeightUnit,
       "purity": purity,
       "makingCharges": makingCharges,
       "discount": discount,
@@ -89,7 +88,6 @@ class ProductModel {
       "productInformation": productInformation,
       "specifications": specifications,
       "hallmark": hallmark,
-      "customizable": customizable,
       "createdTimestamp": Timestamp.fromDate(createdTimestamp),
       "modifiedTimestamp": Timestamp.fromDate(modifiedTimestamp),
     };

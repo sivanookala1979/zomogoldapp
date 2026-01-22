@@ -40,6 +40,18 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     'Diamond',
   ];
 
+  String _selectedCarat = 'Select';
+  final List<String> _caratOptions = [
+    'Select',
+    '14',
+    '18',
+    '20',
+    '22',
+    '23',
+    '24',
+  ];
+
+  final TextEditingController _metalGramsController = TextEditingController();
   final TextEditingController _stoneWeightController = TextEditingController();
   final TextEditingController _stoneCostController = TextEditingController();
   final TextEditingController _makingChargesController =
@@ -67,6 +79,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     _autoSlideTimer?.cancel();
     _pageController.dispose();
     _thumbnailScrollController.dispose();
+    _metalGramsController.dispose();
     _stoneWeightController.dispose();
     _stoneCostController.dispose();
     _makingChargesController.dispose();
@@ -85,7 +98,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       );
       return;
     }
-
     final picker = ImagePicker();
     final List<XFile> pickedFiles = await picker.pickMultiImage();
     if (pickedFiles.isEmpty) return;
@@ -124,18 +136,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         _currentPage = _extraImages.length - 1;
       }
     });
-
-    if (_pageController.hasClients && _extraImages.isNotEmpty) {
+    if (_pageController.hasClients && _extraImages.isNotEmpty)
       _pageController.jumpToPage(_currentPage);
-    }
   }
 
   Widget _displayImage(dynamic img) {
-    if (img is Uint8List) {
-      return Image.memory(img, fit: BoxFit.cover);
-    } else if (img is File) {
-      return Image.file(img, fit: BoxFit.cover);
-    }
+    if (img is Uint8List) return Image.memory(img, fit: BoxFit.cover);
+    if (img is File) return Image.file(img, fit: BoxFit.cover);
     return Container(color: Colors.grey.shade200);
   }
 
@@ -240,20 +247,24 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     List<String> options,
     ValueChanged<String?> onChanged,
   ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          icon: const Icon(Icons.arrow_drop_down, color: primaryPurple),
-          items: options
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
-          onChanged: onChanged,
+    return SizedBox(
+      width: 150,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: value,
+            isExpanded: true,
+            icon: const Icon(Icons.arrow_drop_down, color: primaryPurple),
+            items: options
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+            onChanged: onChanged,
+          ),
         ),
       ),
     );
@@ -327,8 +338,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ? ref.putData(_extraImages[i])
             : ref.putFile(_extraImages[i]);
         final snapshot = await uploadTask;
-        final url = await snapshot.ref.getDownloadURL();
-        downloadUrls.add(url);
+        downloadUrls.add(await snapshot.ref.getDownloadURL());
       } catch (e) {
         debugPrint("❌ STORAGE ERROR: $e");
       }
@@ -504,6 +514,29 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               ],
             ),
 
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Carats",
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                _buildDropdown(
+                  _selectedCarat,
+                  _caratOptions,
+                  (v) => setState(() => _selectedCarat = v!),
+                ),
+              ],
+            ),
+
+            _buildSectionLabel("No. Of Grams"),
+            _buildTextField(
+              _metalGramsController,
+              hint: "Enter grams",
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
+            ),
+
             _buildSectionLabel("Stone Weight"),
             Row(
               children: [
@@ -539,14 +572,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                _buildDropdown(_weightUnit, [
-                  'Select',
-                  'Gram',
-                  'Carat',
-                  'Cents',
-                  'Piece',
-                ], (v) => setState(() => _weightUnit = v!)),
               ],
             ),
 
@@ -638,10 +663,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 userId: "",
                 images: imageUrls,
                 metalName: _selectedMetal,
-                weight: _toDouble(_stoneWeightController),
-                cost: _toDouble(_stoneCostController),
-                weightUnit: _weightUnit,
-                costUnit: _weightUnit,
+                carats: _selectedCarat,
+                metalGrams: _toDouble(_metalGramsController),
+                stoneWeight: _toDouble(_stoneWeightController),
+                stoneCost: _toDouble(_stoneCostController),
+                stoneWeightUnit: _weightUnit,
                 purity: 0.0,
                 makingCharges: _toDouble(_makingChargesController),
                 discount: _toDouble(_discountController),
@@ -649,7 +675,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 productInformation: _quillToJson(_productDetailsController),
                 specifications: _quillToJson(_specificationsController),
                 hallmark: _hallmarkAvailable,
-                customizable: false,
                 createdTimestamp: DateTime.now(),
                 modifiedTimestamp: DateTime.now(),
               );
