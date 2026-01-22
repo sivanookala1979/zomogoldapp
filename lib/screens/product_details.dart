@@ -24,6 +24,9 @@ class ProductDetailsPage extends StatefulWidget {
 class _ProductDetailsPageState extends State<ProductDetailsPage> {
   final List<dynamic> _extraImages = [];
   final PageController _pageController = PageController();
+
+  final ScrollController _thumbnailScrollController = ScrollController();
+
   Timer? _autoSlideTimer;
   int _currentPage = 0;
   static const int maxImages = 10;
@@ -49,8 +52,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   final FocusNode _specificationsFocus = FocusNode();
 
   bool _hallmarkAvailable = false;
-  String _weightUnit = 'Gram';
-  String _costUnit = 'Gram';
+  String _weightUnit = 'Select';
   String _makingChargeType = '%';
 
   @override
@@ -64,6 +66,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   void dispose() {
     _autoSlideTimer?.cancel();
     _pageController.dispose();
+    _thumbnailScrollController.dispose();
     _stoneWeightController.dispose();
     _stoneCostController.dispose();
     _makingChargesController.dispose();
@@ -148,7 +151,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               _pageController.jumpToPage(index);
             },
             child: Container(
-              margin: const EdgeInsets.only(right: 12, top: 8),
+              margin: const EdgeInsets.only(right: 12, top: 8, bottom: 12),
               width: 70,
               height: 70,
               decoration: BoxDecoration(
@@ -392,70 +395,100 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    GestureDetector(
-                      child: TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _extraImages.clear();
-                            _currentPage = 0;
-                          });
-                        },
-                        child: const Text(
-                          "Clear All",
-                          style: TextStyle(color: Colors.purple),
-                        ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _extraImages.clear();
+                          _currentPage = 0;
+                        });
+                      },
+                      child: const Text(
+                        "Clear All",
+                        style: TextStyle(color: Colors.purple),
                       ),
                     ),
                   ],
                 ),
               ),
 
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  if (_extraImages.isNotEmpty)
-                    SizedBox(
-                      height: 90,
-                      child: ReorderableListView(
-                        scrollDirection: Axis.horizontal,
-                        shrinkWrap: true,
-                        buildDefaultDragHandles: false,
-                        onReorder: (oldIndex, newIndex) {
-                          setState(() {
-                            if (newIndex > oldIndex) newIndex--;
-                            final item = _extraImages.removeAt(oldIndex);
-                            _extraImages.insert(newIndex, item);
-                            _currentPage = newIndex;
-                            _pageController.jumpToPage(_currentPage);
-                          });
-                        },
-                        children: [
-                          for (int i = 0; i < _extraImages.length; i++)
-                            _buildThumbnailItem(i),
-                        ],
-                      ),
-                    ),
-                  if (_extraImages.length < maxImages)
-                    GestureDetector(
-                      onTap: _pickNewImage,
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        margin: const EdgeInsets.only(top: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12.0),
+                  child: GestureDetector(
+                    onTap: _extraImages.length >= maxImages
+                        ? null
+                        : _pickNewImage,
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      margin: const EdgeInsets.only(top: 8),
+                      decoration: BoxDecoration(
+                        color: _extraImages.length >= maxImages
+                            ? Colors.grey.shade200
+                            : Colors.grey.shade50,
+                        border: Border.all(
+                          color: _extraImages.length >= maxImages
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade300,
                         ),
-                        child: const Icon(Icons.add, color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _extraImages.length >= maxImages
+                            ? Icons.block
+                            : Icons.add,
+                        color: _extraImages.length >= maxImages
+                            ? Colors.grey.shade500
+                            : Colors.grey,
                       ),
                     ),
-                ],
-              ),
+                  ),
+                ),
+
+                Expanded(
+                  child: RawScrollbar(
+                    controller: _thumbnailScrollController,
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    thickness: 6,
+                    radius: const Radius.circular(10),
+                    thumbColor: primaryPurple.withOpacity(0.5),
+                    trackColor: Colors.grey.shade100,
+                    padding: const EdgeInsets.only(bottom: 0),
+                    child: SingleChildScrollView(
+                      controller: _thumbnailScrollController,
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(bottom: 15),
+                      child: SizedBox(
+                        height: 100,
+                        child: ReorderableListView(
+                          scrollDirection: Axis.horizontal,
+                          shrinkWrap: true,
+                          buildDefaultDragHandles: false,
+                          onReorder: (oldIndex, newIndex) {
+                            setState(() {
+                              if (newIndex > oldIndex) newIndex--;
+                              final item = _extraImages.removeAt(oldIndex);
+                              _extraImages.insert(newIndex, item);
+                              _currentPage = newIndex;
+                              _pageController.jumpToPage(_currentPage);
+                            });
+                          },
+                          children: [
+                            for (int i = 0; i < _extraImages.length; i++)
+                              _buildThumbnailItem(i),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             const Divider(height: 40),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -485,8 +518,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 ),
                 const SizedBox(width: 12),
                 _buildDropdown(_weightUnit, [
+                  'Select',
                   'Gram',
                   'Carat',
+                  'Cents',
                   'Piece',
                 ], (v) => setState(() => _weightUnit = v!)),
               ],
@@ -505,11 +540,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _buildDropdown(_costUnit, [
+                _buildDropdown(_weightUnit, [
+                  'Select',
                   'Gram',
                   'Carat',
+                  'Cents',
                   'Piece',
-                ], (v) => setState(() => _costUnit = v!)),
+                ], (v) => setState(() => _weightUnit = v!)),
               ],
             ),
 
@@ -528,6 +565,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 const SizedBox(width: 12),
                 _buildDropdown(_makingChargeType, [
                   '%',
+                  'Flat',
                 ], (v) => setState(() => _makingChargeType = v!)),
               ],
             ),
@@ -603,7 +641,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 weight: _toDouble(_stoneWeightController),
                 cost: _toDouble(_stoneCostController),
                 weightUnit: _weightUnit,
-                costUnit: _costUnit,
+                costUnit: _weightUnit,
                 purity: 0.0,
                 makingCharges: _toDouble(_makingChargesController),
                 discount: _toDouble(_discountController),
