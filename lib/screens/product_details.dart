@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:another_flushbar/flushbar.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -652,6 +653,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         ),
         child: ElevatedButton(
           onPressed: () async {
+            if (!_validateForm()) return;
             try {
               final productDao = ProductDao();
               final productId = (await productDao.generateNextProductId())
@@ -679,9 +681,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 modifiedTimestamp: DateTime.now(),
               );
               await productDao.addProduct(product);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Product saved successfully")),
-              );
+              _showFancyToast("Product saved successfully", isError: false);
             } catch (e) {
               ScaffoldMessenger.of(
                 context,
@@ -703,5 +703,69 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         ),
       ),
     );
+  }
+
+  bool _isQuillEmpty(QuillController controller) {
+    return controller.document.toPlainText().trim().isEmpty;
+  }
+
+  bool _validateForm() {
+    if (_extraImages.isEmpty) {
+      _showFancyToast("Please upload at least one image");
+      return false;
+    }
+
+    if (_selectedMetal == 'Select') {
+      _showFancyToast("Please select a metal name");
+      return false;
+    }
+
+    if (_metalGramsController.text.trim().isEmpty ||
+        _toDouble(_metalGramsController) <= 0) {
+      _showFancyToast("Please enter valid metal grams");
+      return false;
+    }
+
+    if (_stoneWeightController.text.trim().isEmpty ||
+        _toDouble(_stoneWeightController) <= 0) {
+      _showFancyToast("Please enter valid stone weight");
+      return false;
+    }
+
+    if (_stoneCostController.text.trim().isEmpty ||
+        _toDouble(_stoneCostController) <= 0) {
+      _showFancyToast("Please enter valid stone cost");
+      return false;
+    }
+
+    if (_isQuillEmpty(_productDetailsController)) {
+      _showFancyToast("Please enter product details");
+      return false;
+    }
+
+    return true;
+  }
+
+  void _showFancyToast(String message, {bool isError = true}) {
+    Flushbar(
+      message: message,
+      icon: Icon(
+        isError ? Icons.error_outline : Icons.check_circle_outline,
+        size: 28,
+        color: Colors.white,
+      ),
+      duration: const Duration(seconds: 3),
+      margin: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(12),
+      backgroundColor: isError
+          ? Colors.redAccent.shade700
+          : Colors.green.shade600,
+      boxShadows: const [
+        BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+      ],
+      flushbarStyle: FlushbarStyle.FLOATING,
+      flushbarPosition: FlushbarPosition.TOP,
+      animationDuration: const Duration(milliseconds: 400),
+    ).show(context);
   }
 }
