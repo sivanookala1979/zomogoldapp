@@ -4,6 +4,7 @@ class ProductRateModel {
   final String id;
   final String productType;
   final double price;
+  final double livePrice;
   final String unit;
   final String userId;
   final int timestamp;
@@ -13,6 +14,7 @@ class ProductRateModel {
     required this.id,
     required this.productType,
     required this.price,
+    required this.livePrice,
     required this.unit,
     required this.userId,
     required this.timestamp,
@@ -25,6 +27,9 @@ class ProductRateModel {
       id: snap.id,
       productType: snapshot["productType"] ?? 'Unknown',
       price: (snapshot["price"] as num).toDouble(),
+      livePrice: snapshot.containsKey("livePrice")
+          ? (snapshot["livePrice"] as num).toDouble()
+          : (snapshot["price"] as num).toDouble(),
       unit: snapshot["unit"] ?? 'N/A',
       userId: snapshot["userId"] ?? 'N/A',
       timestamp: (snapshot["timestamp"] as num).toInt(),
@@ -35,6 +40,7 @@ class ProductRateModel {
   Map<String, dynamic> toJson() => {
     "productType": productType,
     "price": price,
+    "livePrice": livePrice,
     "unit": unit,
     "userId": userId,
     "timestamp": timestamp,

@@ -107,10 +107,13 @@ class _GoldRatesScreenState extends State<GoldRatesScreen> {
 
     try {
       final int timestamp = DateTime.now().millisecondsSinceEpoch;
+      final double apiPrice =
+      selectedMetal == 'GOLD' ? goldRawPrice : silverRawPrice;
       final model = ProductRateModel(
         id: '${selectedMetal}_$timestamp',
         productType: selectedMetal,
         price: manualPrice,
+        livePrice: apiPrice,
         unit: selectedMetal == 'GOLD' ? 'per 1g' : 'per KG',
         userId: 'admin',
         timestamp: timestamp,

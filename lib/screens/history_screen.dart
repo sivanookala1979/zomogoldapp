@@ -115,6 +115,7 @@ class _PriceHistoryScreenState extends State<PriceHistoryScreen> {
                   ),
                 ),
               ),
+              _buildLegend(),
               _buildGraphCard(data, isLoading),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -158,11 +159,66 @@ class _PriceHistoryScreenState extends State<PriceHistoryScreen> {
           : LineChart(_mainData(data)),
     );
   }
-
+  Widget _buildLegend() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, bottom: 6),
+      child: Row(
+        children: [
+          _legendItem(
+            color: _kPrimaryColor,
+            text: "Rate",
+          ),
+          const SizedBox(width: 16),
+          _legendItem(
+            color: Colors.grey.shade600,
+            text: "Live Rate",
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _legendItem({required Color color, required String text}) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
   LineChartData _mainData(List<ProductRateModel> data) {
     List<ProductRateModel> sortedData = data.reversed.toList();
+    final manualSpots = sortedData.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), e.value.price);
+    }).toList();
 
+    final liveSpots = sortedData.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), e.value.livePrice);
+    }).toList();
+
+    final allYValues = [
+      ...manualSpots.map((e) => e.y),
+      ...liveSpots.map((e) => e.y),
+    ];
+
+    late final minY = allYValues.reduce((a, b) => a < b ? a : b) * 0.995;
+    late final maxY = allYValues.reduce((a, b) => a > b ? a : b) * 1.005;
     return LineChartData(
+      minY: minY,
+      maxY: maxY,
       gridData: const FlGridData(show: true, drawVerticalLine: false),
       borderData: FlBorderData(
         show: true,
@@ -211,9 +267,7 @@ class _PriceHistoryScreenState extends State<PriceHistoryScreen> {
       lineBarsData: [
         if (data.isNotEmpty)
           LineChartBarData(
-            spots: sortedData.asMap().entries.map((e) {
-              return FlSpot(e.key.toDouble(), e.value.price.toDouble());
-            }).toList(),
+            spots: manualSpots,
             isCurved: true,
             color: _kPrimaryColor,
             barWidth: 3,
@@ -223,6 +277,17 @@ class _PriceHistoryScreenState extends State<PriceHistoryScreen> {
               color: _kPrimaryColor.withOpacity(0.1),
             ),
           ),
+        LineChartBarData(
+          spots: liveSpots,
+          isCurved: true,
+          color: Colors.grey.shade600,
+          barWidth: 2,
+          dotData: const FlDotData(show: true),
+          belowBarData: BarAreaData(
+            show: true,
+            color: _kPrimaryColor.withOpacity(0.1),
+          ),
+        ),
       ],
     );
   }
