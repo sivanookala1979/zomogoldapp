@@ -170,7 +170,7 @@ class _PriceHistoryScreenState extends State<PriceHistoryScreen> {
           ),
           const SizedBox(width: 16),
           _legendItem(
-            color: Colors.grey.shade600,
+            color: const Color(0xFF00B4D8),
             text: "Live Rate",
           ),
         ],
@@ -280,7 +280,7 @@ class _PriceHistoryScreenState extends State<PriceHistoryScreen> {
         LineChartBarData(
           spots: liveSpots,
           isCurved: true,
-          color: Colors.grey.shade600,
+          color: const Color(0xFF00B4D8),
           barWidth: 2,
           dotData: const FlDotData(show: true),
           belowBarData: BarAreaData(
