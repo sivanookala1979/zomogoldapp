@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../dao/product_dao.dart';
 import '../models/product_model.dart';
+import 'filter_screen.dart';
 import 'product_card.dart';
 
 class GridScreen extends StatefulWidget {
@@ -96,6 +97,141 @@ class _GridScreenState extends State<GridScreen> {
     return rate;
   }
 
+  void _showSortBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+                child: Text(
+                  "Sort By",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(),
+              _buildSortOption("New Arrivals", true),
+              _buildSortOption("Popular", false),
+              _buildSortOption("Low to high price", false),
+              _buildSortOption("High to low price", false),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSortOption(String title, bool isSelected) {
+    const Color themePurple = Color(0xFF6B52A1);
+
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: Icon(
+        isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+        color: isSelected ? themePurple : Colors.grey,
+      ),
+      onTap: () {
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  Widget _buildSortFilterBar() {
+    const Color themePurple = Color(0xFF6B52A1);
+    const Color borderColor = Color(0xFFE5E0F0);
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.only(top: 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: borderColor, width: 1.5)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () => _showSortBottomSheet(context),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.sort_rounded, color: themePurple, size: 22),
+                    const SizedBox(width: 10),
+                    const Text(
+                      "Sort by",
+                      style: TextStyle(
+                        color: themePurple,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Container(width: 1, height: double.infinity, color: borderColor),
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FilterScreen()),
+                );
+              },
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.filter_alt_outlined,
+                      color: themePurple,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      "Filter",
+                      style: TextStyle(
+                        color: themePurple,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -176,6 +312,7 @@ class _GridScreenState extends State<GridScreen> {
                 ),
               ),
             ),
+      bottomNavigationBar: _buildSortFilterBar(),
     );
   }
 }

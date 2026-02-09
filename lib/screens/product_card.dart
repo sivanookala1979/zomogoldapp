@@ -69,31 +69,55 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFFFFFFFF),
+                    Color(0x806750A4),
+                  ],
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '₹ ${sellingPrice.toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '₹ ${sellingPrice.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '₹ ${mrp.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          decoration: TextDecoration.lineThrough,
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '₹ ${mrp.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      decoration: TextDecoration.lineThrough,
-                      fontSize: 10,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     product.tagId,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2D2D2D),
+                    ),
                   ),
                 ],
               ),

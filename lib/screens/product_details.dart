@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:another_flushbar/flushbar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -63,7 +64,9 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   late QuillController _specificationsController;
   final FocusNode _productDetailsFocus = FocusNode();
   final FocusNode _specificationsFocus = FocusNode();
-
+  String? _selectedCategoryId;
+  List<Map<String, String>> _categoryList = [];
+  bool _isPageReady = false;
   bool _hallmarkAvailable = false;
   String _weightUnit = 'Select';
   String _makingChargeType = '%';
@@ -73,6 +76,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     super.initState();
     _productDetailsController = QuillController.basic();
     _specificationsController = QuillController.basic();
+    _loadCategories();
   }
 
   @override
@@ -90,6 +94,27 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     _productDetailsFocus.dispose();
     _specificationsFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('Category')
+          .orderBy('name')
+          .get();
+
+      final fetched = snapshot.docs
+          .map((doc) => {'id': doc.id, 'name': doc['name'] as String})
+          .toList();
+
+      setState(() {
+        _categoryList = fetched;
+        _isPageReady = true;
+      });
+    } catch (e) {
+      debugPrint("Error loading categories: $e");
+      setState(() => _isPageReady = true);
+    }
   }
 
   Future<void> _pickNewImage() async {
@@ -126,6 +151,43 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         ),
       );
     }
+  }
+
+  Widget _buildCategoryDropdown() {
+    return SizedBox(
+      width: 150,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _selectedCategoryId,
+            hint: const Text(
+              "Select",
+              style: TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+            isExpanded: true,
+            icon: const Icon(Icons.arrow_drop_down, color: primaryPurple),
+            items: _categoryList.isEmpty
+                ? []
+                : _categoryList.map((cat) {
+                    return DropdownMenuItem<String>(
+                      value: cat['id'],
+                      child: Text(cat['name'] ?? ""),
+                    );
+                  }).toList(),
+            onChanged: (v) {
+              setState(() {
+                _selectedCategoryId = v;
+              });
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   void _removeImage(int index) {
@@ -360,285 +422,317 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 250,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: _extraImages.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "Upload Product Pictures",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: PageView.builder(
-                        controller: _pageController,
-                        itemCount: _extraImages.length,
-                        onPageChanged: (i) => setState(() => _currentPage = i),
-                        itemBuilder: (_, i) => _displayImage(_extraImages[i]),
-                      ),
-                    ),
-            ),
-
-            const SizedBox(height: 12),
-            if (_extraImages.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "${_extraImages.length} / $maxImages Images",
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _extraImages.clear();
-                          _currentPage = 0;
-                        });
-                      },
-                      child: const Text(
-                        "Clear All",
-                        style: TextStyle(color: Colors.purple),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0),
-                  child: GestureDetector(
-                    onTap: _extraImages.length >= maxImages
-                        ? null
-                        : _pickNewImage,
-                    child: Container(
-                      width: 70,
-                      height: 70,
-                      margin: const EdgeInsets.only(top: 8),
-                      decoration: BoxDecoration(
-                        color: _extraImages.length >= maxImages
-                            ? Colors.grey.shade200
-                            : Colors.grey.shade50,
-                        border: Border.all(
-                          color: _extraImages.length >= maxImages
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade300,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        _extraImages.length >= maxImages
-                            ? Icons.block
-                            : Icons.add,
-                        color: _extraImages.length >= maxImages
-                            ? Colors.grey.shade500
-                            : Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-
-                Expanded(
-                  child: RawScrollbar(
-                    controller: _thumbnailScrollController,
-                    thumbVisibility: true,
-                    trackVisibility: true,
-                    thickness: 6,
-                    radius: const Radius.circular(10),
-                    thumbColor: primaryPurple.withOpacity(0.5),
-                    trackColor: Colors.grey.shade100,
-                    padding: const EdgeInsets.only(bottom: 0),
-                    child: SingleChildScrollView(
-                      controller: _thumbnailScrollController,
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.only(bottom: 15),
-                      child: SizedBox(
-                        height: 100,
-                        child: ReorderableListView(
-                          scrollDirection: Axis.horizontal,
-                          shrinkWrap: true,
-                          buildDefaultDragHandles: false,
-                          onReorder: (oldIndex, newIndex) {
-                            setState(() {
-                              if (newIndex > oldIndex) newIndex--;
-                              final item = _extraImages.removeAt(oldIndex);
-                              _extraImages.insert(newIndex, item);
-                              _currentPage = newIndex;
-                              _pageController.jumpToPage(_currentPage);
-                            });
-                          },
-                          children: [
-                            for (int i = 0; i < _extraImages.length; i++)
-                              _buildThumbnailItem(i),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const Divider(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Metal Name",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-                _buildDropdown(
-                  _selectedMetal,
-                  _metalOptions,
-                  (v) => setState(() => _selectedMetal = v!),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Carats",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-                _buildDropdown(
-                  _selectedCarat,
-                  _caratOptions,
-                  (v) => setState(() => _selectedCarat = v!),
-                ),
-              ],
-            ),
-
-            _buildSectionLabel("No. Of Grams"),
-            _buildTextField(
-              _metalGramsController,
-              hint: "Enter grams",
-              keyboard: const TextInputType.numberWithOptions(decimal: true),
-            ),
-
-            _buildSectionLabel("Stone Weight"),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    _stoneWeightController,
-                    hint: "0.00",
-                    keyboard: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _buildDropdown(_weightUnit, [
-                  'Select',
-                  'Gram',
-                  'Carat',
-                  'Cents',
-                  'Piece',
-                ], (v) => setState(() => _weightUnit = v!)),
-              ],
-            ),
-
-            _buildSectionLabel("Stone Cost"),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    _stoneCostController,
-                    hint: "0.00",
-                    keyboard: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            _buildSectionLabel("Making Charges"),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    _makingChargesController,
-                    hint: "Charge amount",
-                    keyboard: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _buildDropdown(_makingChargeType, [
-                  '%',
-                  'Flat',
-                ], (v) => setState(() => _makingChargeType = v!)),
-              ],
-            ),
-
-            _buildSectionLabel("Discount"),
-            _buildTextField(
-              _discountController,
-              hint: "0",
-              keyboard: const TextInputType.numberWithOptions(decimal: true),
-            ),
-
-            _buildSectionLabel("Product Details"),
-            _buildRichTextEditor(
-              _productDetailsController,
-              "Enter product story...",
-              _productDetailsFocus,
-            ),
-
-            _buildSectionLabel("Specifications"),
-            _buildRichTextEditor(
-              _specificationsController,
-              "Enter specifications...",
-              _specificationsFocus,
-            ),
-
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: () =>
-                  setState(() => _hallmarkAvailable = !_hallmarkAvailable),
-              child: Row(
+      body: !_isPageReady
+          ? const Center(child: CircularProgressIndicator(color: primaryPurple))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Checkbox(
-                    value: _hallmarkAvailable,
-                    activeColor: primaryPurple,
-                    onChanged: (v) => setState(() => _hallmarkAvailable = v!),
+                  Container(
+                    height: 250,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: _extraImages.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "Upload Product Pictures",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: PageView.builder(
+                              controller: _pageController,
+                              itemCount: _extraImages.length,
+                              onPageChanged: (i) =>
+                                  setState(() => _currentPage = i),
+                              itemBuilder: (_, i) =>
+                                  _displayImage(_extraImages[i]),
+                            ),
+                          ),
                   ),
-                  const Text(
-                    "Hallmark Available",
-                    style: TextStyle(fontWeight: FontWeight.w600),
+
+                  const SizedBox(height: 12),
+                  if (_extraImages.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "${_extraImages.length} / $maxImages Images",
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _extraImages.clear();
+                                _currentPage = 0;
+                              });
+                            },
+                            child: const Text(
+                              "Clear All",
+                              style: TextStyle(color: Colors.purple),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: GestureDetector(
+                          onTap: _extraImages.length >= maxImages
+                              ? null
+                              : _pickNewImage,
+                          child: Container(
+                            width: 70,
+                            height: 70,
+                            margin: const EdgeInsets.only(top: 8),
+                            decoration: BoxDecoration(
+                              color: _extraImages.length >= maxImages
+                                  ? Colors.grey.shade200
+                                  : Colors.grey.shade50,
+                              border: Border.all(
+                                color: _extraImages.length >= maxImages
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade300,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _extraImages.length >= maxImages
+                                  ? Icons.block
+                                  : Icons.add,
+                              color: _extraImages.length >= maxImages
+                                  ? Colors.grey.shade500
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      Expanded(
+                        child: RawScrollbar(
+                          controller: _thumbnailScrollController,
+                          thumbVisibility: true,
+                          trackVisibility: true,
+                          thickness: 6,
+                          radius: const Radius.circular(10),
+                          thumbColor: primaryPurple.withOpacity(0.5),
+                          trackColor: Colors.grey.shade100,
+                          padding: const EdgeInsets.only(bottom: 0),
+                          child: SingleChildScrollView(
+                            controller: _thumbnailScrollController,
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.only(bottom: 15),
+                            child: SizedBox(
+                              height: 100,
+                              child: ReorderableListView(
+                                scrollDirection: Axis.horizontal,
+                                shrinkWrap: true,
+                                buildDefaultDragHandles: false,
+                                onReorder: (oldIndex, newIndex) {
+                                  setState(() {
+                                    if (newIndex > oldIndex) newIndex--;
+                                    final item = _extraImages.removeAt(
+                                      oldIndex,
+                                    );
+                                    _extraImages.insert(newIndex, item);
+                                    _currentPage = newIndex;
+                                    _pageController.jumpToPage(_currentPage);
+                                  });
+                                },
+                                children: [
+                                  for (int i = 0; i < _extraImages.length; i++)
+                                    _buildThumbnailItem(i),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+
+                  const Divider(height: 40),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Metal Name",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildDropdown(
+                        _selectedMetal,
+                        _metalOptions,
+                        (v) => setState(() => _selectedMetal = v!),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Carats",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildDropdown(
+                        _selectedCarat,
+                        _caratOptions,
+                        (v) => setState(() => _selectedCarat = v!),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Category",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildCategoryDropdown(),
+                    ],
+                  ),
+                  _buildSectionLabel("No. Of Grams"),
+                  _buildTextField(
+                    _metalGramsController,
+                    hint: "Enter grams",
+                    keyboard: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+
+                  _buildSectionLabel("Stone Weight"),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          _stoneWeightController,
+                          hint: "0.00",
+                          keyboard: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildDropdown(_weightUnit, [
+                        'Select',
+                        'Gram',
+                        'Carat',
+                        'Cents',
+                        'Piece',
+                      ], (v) => setState(() => _weightUnit = v!)),
+                    ],
+                  ),
+
+                  _buildSectionLabel("Stone Cost"),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          _stoneCostController,
+                          hint: "0.00",
+                          keyboard: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  _buildSectionLabel("Making Charges"),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          _makingChargesController,
+                          hint: "Charge amount",
+                          keyboard: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildDropdown(
+                        _makingChargeType,
+                        ['%', 'Flat'],
+                        (v) => setState(() => _makingChargeType = v!),
+                      ),
+                    ],
+                  ),
+
+                  _buildSectionLabel("Discount"),
+                  _buildTextField(
+                    _discountController,
+                    hint: "0",
+                    keyboard: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+
+                  _buildSectionLabel("Product Details"),
+                  _buildRichTextEditor(
+                    _productDetailsController,
+                    "Enter product story...",
+                    _productDetailsFocus,
+                  ),
+
+                  _buildSectionLabel("Specifications"),
+                  _buildRichTextEditor(
+                    _specificationsController,
+                    "Enter specifications...",
+                    _specificationsFocus,
+                  ),
+
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () => setState(
+                      () => _hallmarkAvailable = !_hallmarkAvailable,
+                    ),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: _hallmarkAvailable,
+                          activeColor: primaryPurple,
+                          onChanged: (v) =>
+                              setState(() => _hallmarkAvailable = v!),
+                        ),
+                        const Text(
+                          "Hallmark Available",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: const BoxDecoration(
@@ -661,7 +755,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               final imageUrls = await _uploadImages(productId);
               final product = ProductModel(
                 productId: productId,
-                categoryId: "",
+                categoryId: _selectedCategoryId ?? "",
                 userId: "",
                 images: imageUrls,
                 metalName: _selectedMetal,
@@ -717,6 +811,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
     if (_selectedMetal == 'Select') {
       _showFancyToast("Please select a metal name");
+      return false;
+    }
+    if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
+      _showFancyToast("Please select a category");
       return false;
     }
 
