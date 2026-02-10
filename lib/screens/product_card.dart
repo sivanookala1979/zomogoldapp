@@ -6,11 +6,13 @@ import '../models/product_model.dart';
 class ProductCard extends StatelessWidget {
   final ProductModel product;
   final double ratePerGram;
+  final String categoryName;
 
   const ProductCard({
     super.key,
     required this.product,
     required this.ratePerGram,
+    required this.categoryName,
   });
 
   @override
@@ -110,7 +112,7 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    product.tagId,
+                    categoryName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

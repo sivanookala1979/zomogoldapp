@@ -20,6 +20,7 @@ class ProductModel {
   final bool hallmark;
   final DateTime createdTimestamp;
   final DateTime modifiedTimestamp;
+  final String gender;
 
   ProductModel({
     required this.productId,
@@ -41,6 +42,7 @@ class ProductModel {
     required this.hallmark,
     required this.createdTimestamp,
     required this.modifiedTimestamp,
+    required this.gender,
   });
 
   factory ProductModel.fromSnapshot(DocumentSnapshot snap) {
@@ -66,6 +68,7 @@ class ProductModel {
       hallmark: data["hallmark"] ?? false,
       createdTimestamp: (data["createdTimestamp"] as Timestamp).toDate(),
       modifiedTimestamp: (data["modifiedTimestamp"] as Timestamp).toDate(),
+      gender: data["gender"] ?? "Unisex",
     );
   }
 
@@ -90,6 +93,7 @@ class ProductModel {
       "hallmark": hallmark,
       "createdTimestamp": Timestamp.fromDate(createdTimestamp),
       "modifiedTimestamp": Timestamp.fromDate(modifiedTimestamp),
+      "gender": gender,
     };
   }
 }

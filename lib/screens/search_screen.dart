@@ -99,7 +99,6 @@ class SearchScreen extends StatelessWidget {
                         _recommendationTile("Gold jewellery"),
                         _recommendationTile("Silver jewellery"),
                         _recommendationTile("Men's jewellery"),
-                        _recommendationTile("Gifting"),
                         _recommendationTile("Ladies jewellery"),
                         _recommendationTile("New born"),
                       ],

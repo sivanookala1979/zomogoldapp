@@ -43,6 +43,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   ];
 
   String _selectedCarat = 'Select';
+  String _selectedGender = 'Select';
   final List<String> _caratOptions = [
     'Select',
     '14',
@@ -51,6 +52,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     '22',
     '23',
     '24',
+  ];
+  final List<String> _genderOptions = [
+    'Select',
+    'Male',
+    'Female',
+    'Children',
+    'Unisex',
   ];
 
   final TextEditingController _metalGramsController = TextEditingController();
@@ -103,8 +111,17 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           .orderBy('name')
           .get();
 
+      if (!mounted) return;
+
       final fetched = snapshot.docs
-          .map((doc) => {'id': doc.id, 'name': doc['name'] as String})
+          .map(
+            (doc) => {
+              'id': doc.id,
+              'name': (doc.data().containsKey('name'))
+                  ? doc['name'].toString()
+                  : '',
+            },
+          )
           .toList();
 
       setState(() {
@@ -113,6 +130,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       });
     } catch (e) {
       debugPrint("Error loading categories: $e");
+      if (!mounted) return;
       setState(() => _isPageReady = true);
     }
   }
@@ -609,6 +627,24 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
+                        "Gender",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildDropdown(
+                        _selectedGender,
+                        _genderOptions,
+                        (v) => setState(() => _selectedGender = v!),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
                         "Category",
                         style: TextStyle(
                           fontSize: 15,
@@ -773,6 +809,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 hallmark: _hallmarkAvailable,
                 createdTimestamp: DateTime.now(),
                 modifiedTimestamp: DateTime.now(),
+                gender: _selectedGender,
               );
               await productDao.addProduct(product);
               _showFancyToast("Product saved successfully", isError: false);
@@ -813,6 +850,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       _showFancyToast("Please select a metal name");
       return false;
     }
+    if (_selectedGender == 'Select') {
+      _showFancyToast("Please select gender");
+      return false;
+    }
     if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
       _showFancyToast("Please select a category");
       return false;
@@ -827,6 +868,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     if (_stoneWeightController.text.trim().isEmpty ||
         _toDouble(_stoneWeightController) <= 0) {
       _showFancyToast("Please enter valid stone weight");
+      return false;
+    }
+    if (_weightUnit == 'Select') {
+      _showFancyToast("Please select stone weight");
       return false;
     }
 
