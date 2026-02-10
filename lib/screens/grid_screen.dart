@@ -8,7 +8,16 @@ import 'filter_screen.dart';
 import 'product_card.dart';
 
 class GridScreen extends StatefulWidget {
-  const GridScreen({super.key});
+  final List<String> initialMetals;
+  final List<String> initialGenders;
+  final List<String> initialCategoryIds;
+
+  const GridScreen({
+    super.key,
+    this.initialMetals = const [],
+    this.initialGenders = const [],
+    this.initialCategoryIds = const [],
+  });
 
   @override
   State<GridScreen> createState() => _GridScreenState();
@@ -34,11 +43,14 @@ class _GridScreenState extends State<GridScreen> {
   @override
   void initState() {
     super.initState();
+    _activeMetals = List.from(widget.initialMetals);
+    _activeGenders = List.from(widget.initialGenders);
+    _activeCategoryIds = List.from(widget.initialCategoryIds);
     _fetchProducts();
     _loadCategories();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent - 200 &&
+          _scrollController.position.maxScrollExtent - 200 &&
           !_isLoading &&
           _hasMore) {
         _fetchProducts();
@@ -121,9 +133,10 @@ class _GridScreenState extends State<GridScreen> {
           if (!matchesGender) continue;
           bool matchesMetal =
               _activeMetals.isEmpty ||
-              _activeMetals.any(
-                (m) => m.toLowerCase() == product.metalName.toLowerCase(),
-              );
+                  _activeMetals.any(
+                        (m) =>
+                    m.toLowerCase() == product.metalName.toLowerCase(),
+                  );
 
           if (!matchesMetal) continue;
           bool matchesPrice = true;
@@ -149,7 +162,7 @@ class _GridScreenState extends State<GridScreen> {
 
             matchesPrice =
                 sellingPrice >= _currentMinPrice! &&
-                sellingPrice <= _currentMaxPrice!;
+                    sellingPrice <= _currentMaxPrice!;
           }
 
           if (matchesPrice) {
@@ -185,13 +198,14 @@ class _GridScreenState extends State<GridScreen> {
     final Map<String, dynamic>? result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FilterScreen(
-          initialSelectedIds: _activeCategoryIds,
-          initialSelectedGenders: _activeGenders,
-          initialSelectedMetals: _activeMetals,
-          currentMinPrice: _currentMinPrice ?? 0.0,
-          currentMaxPrice: _currentMaxPrice ?? 2000000.0,
-        ),
+        builder: (context) =>
+            FilterScreen(
+              initialSelectedIds: _activeCategoryIds,
+              initialSelectedGenders: _activeGenders,
+              initialSelectedMetals: _activeMetals,
+              currentMinPrice: _currentMinPrice ?? 0.0,
+              currentMaxPrice: _currentMaxPrice ?? 2000000.0,
+            ),
       ),
     );
 
@@ -279,9 +293,9 @@ class _GridScreenState extends State<GridScreen> {
 
     final int selectedCount =
         _activeCategoryIds.length +
-        _activeGenders.length +
-        _activeMetals.length +
-        (isPriceFiltered ? 1 : 0);
+            _activeGenders.length +
+            _activeMetals.length +
+            (isPriceFiltered ? 1 : 0);
     return Container(
       height: 60,
       decoration: const BoxDecoration(
@@ -348,7 +362,7 @@ class _GridScreenState extends State<GridScreen> {
     if (_categoryList.isEmpty || categoryId.isEmpty) return "Jewellery";
     try {
       final category = _categoryList.firstWhere(
-        (cat) => cat['id'] == categoryId,
+            (cat) => cat['id'] == categoryId,
         orElse: () => {'name': 'Jewellery'},
       );
       return category['name']!;
@@ -359,7 +373,10 @@ class _GridScreenState extends State<GridScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
+    double screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
     bool isMobile = screenWidth < 600;
     return Scaffold(
       backgroundColor: const Color(0xFFF6F3FA),
@@ -400,36 +417,36 @@ class _GridScreenState extends State<GridScreen> {
                     : _products.isEmpty
                     ? const Center(child: Text("No products found"))
                     : GridView.builder(
-                        controller: _scrollController,
-                        itemCount:
-                            _products.length + (_hasMore && _isLoading ? 1 : 0),
-                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: isMobile ? screenWidth / 2 : 280,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: isMobile ? 0.68 : 0.80,
-                        ),
-                        itemBuilder: (context, index) {
-                          if (index >= _products.length) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          final product = _products[index];
-                          return FutureBuilder<double>(
-                            future: _getRate(product.metalName),
-                            builder: (context, snapshot) {
-                              return ProductCard(
-                                product: product,
-                                ratePerGram: snapshot.data ?? 0.0,
-                                categoryName: _getCategoryName(
-                                  product.categoryId,
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
+                  controller: _scrollController,
+                  itemCount:
+                  _products.length + (_hasMore && _isLoading ? 1 : 0),
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: isMobile ? screenWidth / 2 : 280,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: isMobile ? 0.68 : 0.80,
+                  ),
+                  itemBuilder: (context, index) {
+                    if (index >= _products.length) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+                    final product = _products[index];
+                    return FutureBuilder<double>(
+                      future: _getRate(product.metalName),
+                      builder: (context, snapshot) {
+                        return ProductCard(
+                          product: product,
+                          ratePerGram: snapshot.data ?? 0.0,
+                          categoryName: _getCategoryName(
+                            product.categoryId,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           ),
