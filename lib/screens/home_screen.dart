@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:zomogoldapp/screens/search_screen.dart';
 
 import 'gold_rate.dart';
+import 'grid_screen.dart';
 
 void main() {
   runApp(
@@ -9,13 +11,20 @@ void main() {
   );
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Map<String, String>> _categoryList = [];
 
   final List<Map<String, dynamic>> mainCategories = const [
     {'name': 'Rings', 'imageAsset': 'assets/ring.png'},
-    {'name': 'Necklace', 'imageAsset': 'assets/necklaces.png'},
-    {'name': 'Nose rings', 'imageAsset': 'assets/noserings.png'},
+    {'name': 'Necklaces', 'imageAsset': 'assets/necklaces.png'},
+    {'name': 'Nose accessories', 'imageAsset': 'assets/noserings.png'},
     {'name': 'Silver coin', 'imageAsset': 'assets/silver_coin.png'},
     {'name': 'Pendants', 'imageAsset': 'assets/pendants.png'},
     {'name': 'Earrings', 'imageAsset': 'assets/earrings.png'},
@@ -28,6 +37,63 @@ class HomeScreen extends StatelessWidget {
     {'name': 'Women', 'imageAsset': 'assets/women.png'},
     {'name': 'Boy', 'imageAsset': 'assets/boy.png'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('Category')
+          .orderBy('name')
+          .get();
+
+      setState(() {
+        _categoryList = snapshot.docs
+            .map((doc) => {'id': doc.id, 'name': doc['name'] as String})
+            .toList();
+      });
+    } catch (e) {
+      debugPrint("Error loading categories: $e");
+    }
+  }
+
+  String? _getCategoryIdByName(String name) {
+    try {
+      return _categoryList.firstWhere(
+        (cat) => cat['name']!.toLowerCase() == name.toLowerCase(),
+      )['id'];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  void _navigateToGrid(
+    BuildContext context, {
+    List<String>? metals,
+    List<String>? genders,
+    String? categoryName,
+  }) {
+    List<String> categoryIds = [];
+    if (categoryName != null) {
+      String? id = _getCategoryIdByName(categoryName);
+      if (id != null) categoryIds.add(id);
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GridScreen(
+          initialMetals: metals ?? [],
+          initialGenders: genders ?? [],
+          initialCategoryIds: categoryIds,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +223,7 @@ class HomeScreen extends StatelessWidget {
             Icons.circle,
             Colors.amber,
             isMobile,
+            () => _navigateToGrid(context, metals: ['Gold']),
           ),
           _buildPillButton(
             context,
@@ -164,6 +231,7 @@ class HomeScreen extends StatelessWidget {
             Icons.horizontal_rule,
             Colors.grey,
             isMobile,
+            () => _navigateToGrid(context, metals: ['Silver']),
           ),
           _buildPillButton(
             context,
@@ -171,6 +239,7 @@ class HomeScreen extends StatelessWidget {
             Icons.diamond,
             Colors.blueGrey,
             isMobile,
+            () => _navigateToGrid(context, metals: ['Diamond']),
           ),
         ],
       ),
@@ -183,11 +252,12 @@ class HomeScreen extends StatelessWidget {
     IconData icon,
     Color iconColor,
     bool isMobile,
+    VoidCallback onTap,
   ) {
     return SizedBox(
       width: isMobile ? (MediaQuery.of(context).size.width / 3) - 22 : 180,
       child: OutlinedButton(
-        onPressed: () {},
+        onPressed: onTap,
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 18),
           side: BorderSide(color: Colors.grey.shade300),
@@ -228,31 +298,38 @@ class HomeScreen extends StatelessWidget {
         itemCount: mainCategories.length,
         itemBuilder: (context, index) {
           final category = mainCategories[index];
-          return Column(
-            children: <Widget>[
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12.0),
-                    border: Border.all(color: Colors.grey.shade200),
-                    image: DecorationImage(
-                      image: AssetImage(category['imageAsset']),
-                      fit: BoxFit.cover,
+          final String name = category['name'];
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => _navigateToGrid(context, categoryName: name),
+              child: Column(
+                children: <Widget>[
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(color: Colors.grey.shade200),
+                        image: DecorationImage(
+                          image: AssetImage(category['imageAsset']),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Text(
+                    category['name'] as String,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                category['name'] as String,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            ),
           );
         },
       ),
@@ -267,29 +344,42 @@ class HomeScreen extends StatelessWidget {
         runSpacing: 20,
         alignment: isDesktop ? WrapAlignment.start : WrapAlignment.center,
         children: shopByPeople.map((person) {
-          return Column(
-            children: <Widget>[
-              Container(
-                width: isDesktop ? 130 : 100,
-                height: isDesktop ? 130 : 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.shade200),
-                  image: DecorationImage(
-                    image: AssetImage(person['imageAsset']),
-                    fit: BoxFit.cover,
+          final String name = person['name'] as String;
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () {
+                String searchGender = name;
+                if (name == 'Boy') {
+                  searchGender = 'Children';
+                }
+                _navigateToGrid(context, genders: [searchGender]);
+              },
+              child: Column(
+                children: <Widget>[
+                  Container(
+                    width: isDesktop ? 130 : 100,
+                    height: isDesktop ? 130 : 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade200),
+                      image: DecorationImage(
+                        image: AssetImage(person['imageAsset'] as String),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                person['name'] as String,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+            ),
           );
         }).toList(),
       ),
