@@ -54,7 +54,9 @@ class _FilterScreenState extends State<FilterScreen> {
           .get();
 
       final fetched = snapshot.docs
-          .map((doc) => {'id': doc.id, 'name': doc['name'] as String})
+          .map(
+            (doc) => {'id': doc["id"].toString(), 'name': doc['name'] as String},
+          )
           .toList();
 
       setState(() {

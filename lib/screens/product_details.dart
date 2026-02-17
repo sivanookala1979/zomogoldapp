@@ -116,7 +116,9 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       final fetched = snapshot.docs
           .map(
             (doc) => {
-              'id': doc.id,
+              'id': (doc.data().containsKey('id'))
+                  ? doc['id'].toString()
+                  : "0",
               'name': (doc.data().containsKey('name'))
                   ? doc['name'].toString()
                   : '',
@@ -201,6 +203,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               setState(() {
                 _selectedCategoryId = v;
               });
+              print("Selected ID: $v");
             },
           ),
         ),
@@ -810,6 +813,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 createdTimestamp: DateTime.now(),
                 modifiedTimestamp: DateTime.now(),
                 gender: _selectedGender,
+                viewCount: 0,
               );
               await productDao.addProduct(product);
               _showFancyToast("Product saved successfully", isError: false);

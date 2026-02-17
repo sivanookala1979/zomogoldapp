@@ -32,6 +32,15 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
   void initState() {
     super.initState();
     _loadProduct();
+    incrementProductView();
+  }
+
+  Future<void> incrementProductView() async {
+    try {
+      await _productDao.recordView(widget.productId);
+    } catch (e) {
+      print("Error updating view count: $e");
+    }
   }
 
   Future<void> _loadProduct() async {

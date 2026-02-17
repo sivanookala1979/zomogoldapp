@@ -21,6 +21,7 @@ class ProductModel {
   final DateTime createdTimestamp;
   final DateTime modifiedTimestamp;
   final String gender;
+  final int viewCount;
 
   ProductModel({
     required this.productId,
@@ -43,6 +44,7 @@ class ProductModel {
     required this.createdTimestamp,
     required this.modifiedTimestamp,
     required this.gender,
+    required this.viewCount,
   });
 
   factory ProductModel.fromSnapshot(DocumentSnapshot snap) {
@@ -69,6 +71,7 @@ class ProductModel {
       createdTimestamp: (data["createdTimestamp"] as Timestamp).toDate(),
       modifiedTimestamp: (data["modifiedTimestamp"] as Timestamp).toDate(),
       gender: data["gender"] ?? "Unisex",
+      viewCount: data["viewCount"] ?? 0,
     );
   }
 
@@ -94,6 +97,7 @@ class ProductModel {
       "createdTimestamp": Timestamp.fromDate(createdTimestamp),
       "modifiedTimestamp": Timestamp.fromDate(modifiedTimestamp),
       "gender": gender,
+      "viewCount": viewCount,
     };
   }
 }

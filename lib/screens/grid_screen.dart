@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../dao/product_dao.dart';
 import '../models/price_calculator.dart';
 import '../models/product_model.dart';
+import '../models/product_sort.dart';
 import 'filter_screen.dart';
 import 'product_card.dart';
 
@@ -39,6 +40,7 @@ class _GridScreenState extends State<GridScreen> {
   List<String> _activeMetals = [];
   double? _currentMinPrice;
   double? _currentMaxPrice;
+  ProductSortType _currentSort = ProductSortType.newArrivals;
 
   @override
   void initState() {
@@ -50,7 +52,7 @@ class _GridScreenState extends State<GridScreen> {
     _loadCategories();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 200 &&
+              _scrollController.position.maxScrollExtent - 200 &&
           !_isLoading &&
           _hasMore) {
         _fetchProducts();
@@ -72,7 +74,12 @@ class _GridScreenState extends State<GridScreen> {
           .get();
 
       final fetched = snapshot.docs
-          .map((doc) => {'id': doc.id, 'name': doc['name'] as String})
+          .map(
+            (doc) => {
+              'id': doc["id"].toString(),
+              'name': doc['name'] as String,
+            },
+          )
           .toList();
 
       setState(() {
@@ -97,6 +104,7 @@ class _GridScreenState extends State<GridScreen> {
 
     try {
       Query query = FirebaseFirestore.instance.collection('Products');
+
       if (_activeCategoryIds.isNotEmpty) {
         query = query.where('categoryId', whereIn: _activeCategoryIds);
       } else if (_activeGenders.isNotEmpty) {
@@ -104,7 +112,13 @@ class _GridScreenState extends State<GridScreen> {
       } else if (_activeMetals.isNotEmpty) {
         query = query.where('metalName', whereIn: _activeMetals);
       }
-      query = query.orderBy('createdTimestamp', descending: true).limit(20);
+      if (_currentSort == ProductSortType.popular) {
+        query = query.orderBy('viewCount', descending: true);
+      } else {
+        query = query.orderBy('createdTimestamp', descending: true);
+      }
+
+      query = query.limit(20);
 
       if (_lastDoc != null && !isRefresh) {
         query = query.startAfterDocument(_lastDoc!);
@@ -131,43 +145,34 @@ class _GridScreenState extends State<GridScreen> {
           bool matchesGender =
               _activeGenders.isEmpty || _activeGenders.contains(product.gender);
           if (!matchesGender) continue;
+
           bool matchesMetal =
               _activeMetals.isEmpty ||
-                  _activeMetals.any(
-                        (m) =>
-                    m.toLowerCase() == product.metalName.toLowerCase(),
-                  );
-
+              _activeMetals.any(
+                (m) => m.toLowerCase() == product.metalName.toLowerCase(),
+              );
           if (!matchesMetal) continue;
+
           bool matchesPrice = true;
           if (_currentMinPrice != null && _currentMaxPrice != null) {
-            double currentRate =
-                _rateCache[product.metalName.toUpperCase()] ?? 0.0;
-
-            double mrp = PriceCalculator.calculateProductMRP(
-              metalName: product.metalName,
-              carats: product.carats,
-              metalGrams: product.metalGrams,
-              metalRate: currentRate,
-              stoneWeight: product.stoneWeight,
-              stoneCost: product.stoneCost,
-              makingChargeValue: product.makingCharges,
-              makingChargeType: "Flat",
-            );
-
-            double sellingPrice = PriceCalculator.calculateSellingPrice(
-              mrp: mrp,
-              discountPercent: product.discount,
-            );
-
+            double price = await _calculateActualPrice(product);
             matchesPrice =
-                sellingPrice >= _currentMinPrice! &&
-                    sellingPrice <= _currentMaxPrice!;
+                price >= _currentMinPrice! && price <= _currentMaxPrice!;
           }
 
-          if (matchesPrice) {
-            filteredItems.add(product);
-          }
+          if (matchesPrice) filteredItems.add(product);
+        }
+        if (_currentSort == ProductSortType.priceLowToHigh ||
+            _currentSort == ProductSortType.priceHighToLow) {
+          await _preCacheRates(filteredItems);
+          filteredItems.sort((a, b) {
+            double priceA = _getCachedPrice(a);
+            double priceB = _getCachedPrice(b);
+
+            return _currentSort == ProductSortType.priceLowToHigh
+                ? priceA.compareTo(priceB)
+                : priceB.compareTo(priceA);
+          });
         }
 
         if (!mounted) return;
@@ -180,6 +185,55 @@ class _GridScreenState extends State<GridScreen> {
       debugPrint("Error: $e");
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<double> _calculateActualPrice(ProductModel product) async {
+    double currentRate = await _getRate(product.metalName);
+    double mrp = PriceCalculator.calculateProductMRP(
+      metalName: product.metalName,
+      carats: product.carats,
+      metalGrams: product.metalGrams,
+      metalRate: currentRate,
+      stoneWeight: product.stoneWeight,
+      stoneCost: product.stoneCost,
+      makingChargeValue: product.makingCharges,
+      makingChargeType: "Flat",
+    );
+    return PriceCalculator.calculateSellingPrice(
+      mrp: mrp,
+      discountPercent: product.discount,
+    );
+  }
+
+  double _getCachedPrice(ProductModel product) {
+    double rate = _rateCache[product.metalName.toUpperCase()] ?? 0.0;
+    double mrp = PriceCalculator.calculateProductMRP(
+      metalName: product.metalName,
+      carats: product.carats,
+      metalGrams: product.metalGrams,
+      metalRate: rate,
+      stoneWeight: product.stoneWeight,
+      stoneCost: product.stoneCost,
+      makingChargeValue: product.makingCharges,
+      makingChargeType: "Flat",
+    );
+    return PriceCalculator.calculateSellingPrice(
+      mrp: mrp,
+      discountPercent: product.discount,
+    );
+  }
+
+  Future<void> _preCacheRates(List<ProductModel> products) async {
+    for (var p in products) {
+      await _getRate(p.metalName);
+    }
+  }
+
+  void _onSortSelected(ProductSortType selection) {
+    setState(() {
+      _currentSort = selection;
+    });
+    _fetchProducts(isRefresh: true);
   }
 
   Future<double> _getRate(String metal) async {
@@ -198,14 +252,13 @@ class _GridScreenState extends State<GridScreen> {
     final Map<String, dynamic>? result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            FilterScreen(
-              initialSelectedIds: _activeCategoryIds,
-              initialSelectedGenders: _activeGenders,
-              initialSelectedMetals: _activeMetals,
-              currentMinPrice: _currentMinPrice ?? 0.0,
-              currentMaxPrice: _currentMaxPrice ?? 2000000.0,
-            ),
+        builder: (context) => FilterScreen(
+          initialSelectedIds: _activeCategoryIds,
+          initialSelectedGenders: _activeGenders,
+          initialSelectedMetals: _activeMetals,
+          currentMinPrice: _currentMinPrice ?? 0.0,
+          currentMaxPrice: _currentMaxPrice ?? 2000000.0,
+        ),
       ),
     );
 
@@ -253,10 +306,16 @@ class _GridScreenState extends State<GridScreen> {
                 ),
               ),
               const Divider(),
-              _buildSortOption("New Arrivals", true),
-              _buildSortOption("Popular", false),
-              _buildSortOption("Low to high price", false),
-              _buildSortOption("High to low price", false),
+              _buildSortOption("New Arrivals", ProductSortType.newArrivals),
+              _buildSortOption("Popular", ProductSortType.popular),
+              _buildSortOption(
+                "Low to high price",
+                ProductSortType.priceLowToHigh,
+              ),
+              _buildSortOption(
+                "High to low price",
+                ProductSortType.priceHighToLow,
+              ),
               const SizedBox(height: 20),
             ],
           ),
@@ -265,7 +324,8 @@ class _GridScreenState extends State<GridScreen> {
     );
   }
 
-  Widget _buildSortOption(String title, bool isSelected) {
+  Widget _buildSortOption(String title, ProductSortType value) {
+    bool isSelected = _currentSort == value;
     const Color themePurple = Color(0xFF6B52A1);
 
     return ListTile(
@@ -281,6 +341,7 @@ class _GridScreenState extends State<GridScreen> {
       ),
       onTap: () {
         Navigator.pop(context);
+        _onSortSelected(value);
       },
     );
   }
@@ -293,9 +354,9 @@ class _GridScreenState extends State<GridScreen> {
 
     final int selectedCount =
         _activeCategoryIds.length +
-            _activeGenders.length +
-            _activeMetals.length +
-            (isPriceFiltered ? 1 : 0);
+        _activeGenders.length +
+        _activeMetals.length +
+        (isPriceFiltered ? 1 : 0);
     return Container(
       height: 60,
       decoration: const BoxDecoration(
@@ -362,7 +423,7 @@ class _GridScreenState extends State<GridScreen> {
     if (_categoryList.isEmpty || categoryId.isEmpty) return "Jewellery";
     try {
       final category = _categoryList.firstWhere(
-            (cat) => cat['id'] == categoryId,
+        (cat) => cat['id'] == categoryId,
         orElse: () => {'name': 'Jewellery'},
       );
       return category['name']!;
@@ -373,10 +434,7 @@ class _GridScreenState extends State<GridScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery
-        .of(context)
-        .size
-        .width;
+    double screenWidth = MediaQuery.of(context).size.width;
     bool isMobile = screenWidth < 600;
     return Scaffold(
       backgroundColor: const Color(0xFFF6F3FA),
@@ -417,36 +475,36 @@ class _GridScreenState extends State<GridScreen> {
                     : _products.isEmpty
                     ? const Center(child: Text("No products found"))
                     : GridView.builder(
-                  controller: _scrollController,
-                  itemCount:
-                  _products.length + (_hasMore && _isLoading ? 1 : 0),
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: isMobile ? screenWidth / 2 : 280,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: isMobile ? 0.68 : 0.80,
-                  ),
-                  itemBuilder: (context, index) {
-                    if (index >= _products.length) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
-                    final product = _products[index];
-                    return FutureBuilder<double>(
-                      future: _getRate(product.metalName),
-                      builder: (context, snapshot) {
-                        return ProductCard(
-                          product: product,
-                          ratePerGram: snapshot.data ?? 0.0,
-                          categoryName: _getCategoryName(
-                            product.categoryId,
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                        controller: _scrollController,
+                        itemCount:
+                            _products.length + (_hasMore && _isLoading ? 1 : 0),
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: isMobile ? screenWidth / 2 : 280,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: isMobile ? 0.68 : 0.80,
+                        ),
+                        itemBuilder: (context, index) {
+                          if (index >= _products.length) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          final product = _products[index];
+                          return FutureBuilder<double>(
+                            future: _getRate(product.metalName),
+                            builder: (context, snapshot) {
+                              return ProductCard(
+                                product: product,
+                                ratePerGram: snapshot.data ?? 0.0,
+                                categoryName: _getCategoryName(
+                                  product.categoryId,
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
               ),
             ],
           ),

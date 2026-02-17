@@ -84,4 +84,8 @@ class ProductDao {
 
     return (snap.docs.first['price'] as num).toDouble();
   }
+  Future<void> recordView(String productId) async {
+    await _productRef.doc(productId).update({
+      'viewCount': FieldValue.increment(1)});
+  }
 }

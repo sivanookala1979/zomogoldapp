@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _categoryList = snapshot.docs
-            .map((doc) => {'id': doc.id, 'name': doc['name'] as String})
+            .map((doc) => {'id':  doc["id"].toString(), 'name': doc['name'] as String})
             .toList();
       });
     } catch (e) {
