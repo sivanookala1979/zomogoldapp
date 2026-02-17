@@ -352,6 +352,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 String searchGender = name;
                 if (name == 'Boy') {
                   searchGender = 'Children';
+                }else if (name == 'Men') {
+                  searchGender = 'Male';
+                }if (name == 'Women') {
+                  searchGender = 'Female';
                 }
                 _navigateToGrid(context, genders: [searchGender]);
               },

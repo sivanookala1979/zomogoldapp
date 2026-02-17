@@ -86,7 +86,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     _productDetailsController = QuillController.basic();
     _specificationsController = QuillController.basic();
     _loadCategories();
-
   }
 
   @override
@@ -634,7 +633,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Gender",
+                        "Suitable For",
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -860,7 +859,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       return false;
     }
     if (_selectedGender == 'Select') {
-      _showFancyToast("Please select gender");
+      _showFancyToast("Please select suitable for");
       return false;
     }
     if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {

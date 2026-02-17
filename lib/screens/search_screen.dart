@@ -29,7 +29,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     setState(() {
       _categoryList = snapshot.docs
-          .map((doc) => {'id':  doc["id"] as String, 'name': doc['name'] as String})
+          .map((doc) => {'id':  doc["id"].toString(), 'name': doc['name'] as String})
           .toList();
     });
   }
