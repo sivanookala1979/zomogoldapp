@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ProductModel {
   final String productId;
   final String categoryId;
+  final String productName;
   final String userId;
   final List<String> images;
   final String metalName;
@@ -26,6 +27,7 @@ class ProductModel {
   ProductModel({
     required this.productId,
     required this.categoryId,
+    required this.productName,
     required this.userId,
     required this.images,
     required this.metalName,
@@ -53,6 +55,7 @@ class ProductModel {
     return ProductModel(
       productId: data["productId"],
       categoryId: data["categoryId"],
+      productName: data["productName"] ?? "",
       userId: data["userId"],
       images: List<String>.from(data["images"] ?? []),
       metalName: data["metalName"],
@@ -79,6 +82,7 @@ class ProductModel {
     return {
       "productId": productId,
       "categoryId": categoryId,
+      "productName": productName,
       "userId": userId,
       "images": images,
       "metalName": metalName,

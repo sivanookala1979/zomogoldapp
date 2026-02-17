@@ -62,6 +62,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   ];
 
   final TextEditingController _metalGramsController = TextEditingController();
+  final TextEditingController _productNameController = TextEditingController();
   final TextEditingController _stoneWeightController = TextEditingController();
   final TextEditingController _stoneCostController = TextEditingController();
   final TextEditingController _makingChargesController =
@@ -85,6 +86,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     _productDetailsController = QuillController.basic();
     _specificationsController = QuillController.basic();
     _loadCategories();
+
   }
 
   @override
@@ -93,6 +95,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     _pageController.dispose();
     _thumbnailScrollController.dispose();
     _metalGramsController.dispose();
+    _productNameController.dispose();
     _stoneWeightController.dispose();
     _stoneCostController.dispose();
     _makingChargesController.dispose();
@@ -116,9 +119,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
       final fetched = snapshot.docs
           .map(
             (doc) => {
-              'id': (doc.data().containsKey('id'))
-                  ? doc['id'].toString()
-                  : "0",
+              'id': (doc.data().containsKey('id')) ? doc['id'].toString() : "0",
               'name': (doc.data().containsKey('name'))
                   ? doc['name'].toString()
                   : '',
@@ -589,6 +590,9 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   ),
 
                   const Divider(height: 40),
+                  _buildSectionLabel("Product Name"),
+                  _buildTextField(_productNameController, hint: ""),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -795,6 +799,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               final product = ProductModel(
                 productId: productId,
                 categoryId: _selectedCategoryId ?? "",
+                productName: _productNameController.text,
                 userId: "",
                 images: imageUrls,
                 metalName: _selectedMetal,
@@ -866,6 +871,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     if (_metalGramsController.text.trim().isEmpty ||
         _toDouble(_metalGramsController) <= 0) {
       _showFancyToast("Please enter valid metal grams");
+      return false;
+    }
+    if (_productNameController.text.trim().isEmpty) {
+      _showFancyToast("Please enter product name");
       return false;
     }
 
