@@ -475,9 +475,9 @@ class _GridScreenState extends State<GridScreen> {
           ],
         ),
         actions: [
-          actionCircleIcon(icon: Icons.favorite_border, onTap: () {}),
+          actionCircleIcon(icon: Icons.favorite_border, context: context),
           const SizedBox(width: 8),
-          actionCircleIcon(icon: Icons.shopping_bag_outlined, onTap: () {}),
+          actionCircleIcon(icon: Icons.shopping_bag_outlined, context: context),
           const SizedBox(width: 16),
         ],
       ),

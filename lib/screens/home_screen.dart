@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:zomogoldapp/screens/cart_screen.dart';
 import 'package:zomogoldapp/screens/search_screen.dart';
+import 'package:zomogoldapp/screens/wishlist_screen.dart';
 
-import '../theme/app_theme.dart';
+import 'category_screen.dart';
 import 'custom_buttons.dart';
 import 'gold_rate.dart';
 import 'grid_screen.dart';
+import 'orders_screen.dart';
 
 void main() {
   runApp(
@@ -139,12 +142,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 8),
                 actionCircleIcon(
                   icon: Icons.favorite_border,
-                  onTap: () => print("Wishlist tapped"),
+                  context: context,
                 ),
                 const SizedBox(width: 8),
                 actionCircleIcon(
                   icon: Icons.shopping_bag_outlined,
-                  onTap: () => print("Cart tapped"),
+                  context: context,
                 ),
               ],
             ),
@@ -450,11 +453,29 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: 0,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         onTap: (index) {
-          if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => GoldRatesScreen()),
-            );
+          switch (index) {
+            case 0:
+              break;
+            case 1:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CategoryScreen(categoryName: "All"),
+                ),
+              );
+              break;
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OrdersScreen()),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GoldRatesScreen()),
+              );
+              break;
           }
         },
         items: const <BottomNavigationBarItem>[

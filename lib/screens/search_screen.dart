@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'grid_screen.dart';
 import 'home_screen.dart';
 import '../screens/custom_buttons.dart';
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -120,7 +121,10 @@ class _SearchScreenState extends State<SearchScreen> {
                             context,
                             searchQuery: value.trim(),
                           ),
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'Search...',
                             hintStyle: const TextStyle(
@@ -155,12 +159,12 @@ class _SearchScreenState extends State<SearchScreen> {
                     const SizedBox(width: 8),
                     actionCircleIcon(
                       icon: Icons.favorite_border,
-                      onTap: () => print("Wishlist tapped"),
+                      context: context,
                     ),
                     const SizedBox(width: 8),
                     actionCircleIcon(
                       icon: Icons.shopping_bag_outlined,
-                      onTap: () => print("Cart tapped"),
+                      context: context,
                     ),
                   ],
                 ),
@@ -254,7 +258,6 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
-
 
   Widget _sectionTitle(String title) {
     return Padding(
