@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'otp_verification_screen.dart';
@@ -32,41 +33,47 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     final fullPhone = "+91$phone";
 
     try {
-      FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: fullPhone,
-
-        verificationCompleted: (PhoneAuthCredential credential) {},
-
-        verificationFailed: (FirebaseAuthException e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message ?? "Verification failed")),
-          );
-        },
-
-        codeSent: (String verificationId, int? resendToken) {
-        },
-
-        codeAutoRetrievalTimeout: (String verificationId) {},
-      );
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            verificationId: "",
+      if (kIsWeb) {
+        final confirmationResult =
+        await FirebaseAuth.instance.signInWithPhoneNumber(fullPhone);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                OtpVerificationScreen(confirmationResult: confirmationResult),
           ),
-        ),
-      );
+        );
+      } else {
+        await FirebaseAuth.instance.verifyPhoneNumber(
+          phoneNumber: fullPhone,
 
+          verificationCompleted: (PhoneAuthCredential credential) async {
+            await FirebaseAuth.instance.signInWithCredential(credential);
+          },
+
+          verificationFailed: (FirebaseAuthException e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.message ?? "Verification failed")),
+            );
+          },
+          codeSent: (String verificationId, int? resendToken) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    OtpVerificationScreen(verificationId: verificationId),
+              ),
+            );
+          },
+
+          codeAutoRetrievalTimeout: (String verificationId) {},
+        );
+      }
     } catch (e) {
-      Navigator.push(
+      print("🔥 Unknown Error: $e");
+      ScaffoldMessenger.of(
         context,
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            verificationId: "",
-          ),
-        ),
-      );
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -78,14 +85,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // 🟣 Login as Guest Button - Top Right Corner
             Positioned(
               top: 16,
               right: 16,
               child: OutlinedButton(
-                onPressed: () {
-                  // Handle guest login
-                },
+                onPressed: () {},
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: AppColors.purple[600]!),
                   shape: RoundedRectangleBorder(
@@ -106,7 +110,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
               ),
             ),
 
-            // 🟣 Main content - aligned at bottom
             Align(
               alignment: Alignment.bottomCenter,
               child: SingleChildScrollView(
@@ -167,7 +170,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // 🟣 Send OTP Button
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -191,7 +193,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // 🟣 Register Text
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

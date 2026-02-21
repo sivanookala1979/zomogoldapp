@@ -2,14 +2,19 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:zomogoldapp/screens/home_screen.dart';
 
 import '../theme/app_theme.dart';
+import 'home_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  final String verificationId;
+  final ConfirmationResult? confirmationResult;
+  final String? verificationId;
 
-  const OtpVerificationScreen({super.key, required this.verificationId});
+  const OtpVerificationScreen({
+    super.key,
+    this.confirmationResult,
+    this.verificationId,
+  });
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -17,11 +22,11 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final List<TextEditingController> _otpControllers = List.generate(
-    4,
+    6,
     (index) => TextEditingController(),
   );
 
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
   int _secondsRemaining = 30;
   Timer? _timer;
 
@@ -57,9 +62,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   Future<void> _verifyOtp() async {
     final otp = _otpControllers.map((e) => e.text).join();
-    if (widget.verificationId.isEmpty) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => HomeScreen()));
-    }
 
     if (otp.length != 6) {
       ScaffoldMessenger.of(
@@ -69,20 +71,27 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
 
     try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
-        smsCode: otp,
-      );
+      if (widget.confirmationResult != null) {
+        await widget.confirmationResult!.confirm(otp);
+      } else if (widget.verificationId != null) {
+        final credential = PhoneAuthProvider.credential(
+          verificationId: widget.verificationId!,
+          smsCode: otp,
+        );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("OTP Verified Successfully")),
       );
-      Navigator.pushReplacementNamed(context, '/home');
-    } catch (e) {
-      ScaffoldMessenger.of(
+
+      Navigator.pushReplacement(
         context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context,
       ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
     }
   }
@@ -130,22 +139,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             onChanged: (value) {
               if (value.isNotEmpty) {
                 if (RegExp(r'^[0-9]$').hasMatch(value)) {
-                  if (index < 3) {
+                  if (index < 5) {
                     FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
                   } else {
                     _focusNodes[index].unfocus();
                   }
                 } else {
-                  // Remove invalid input
                   _otpControllers[index].clear();
                 }
               } else if (index > 0) {
                 FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
               }
-              setState(() {}); // Refresh dash visibility
+              setState(() {});
             },
           ),
-          // Dash when empty
           if (_otpControllers[index].text.isEmpty)
             const Text(
               "-",
@@ -216,19 +223,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                     ),
                     const SizedBox(height: 32),
-
-                    // 4 OTP Boxes
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: List.generate(
-                        4,
+                        6,
                         (index) => _buildOtpBox(index),
                       ),
                     ),
 
                     const SizedBox(height: 32),
-
-                    // Verify Button
                     SizedBox(
                       width: double.infinity,
                       height: 52,

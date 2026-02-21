@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
       supportedLocales: const [Locale('en', 'US')],
       initialRoute: '/',
       routes: {
-        '/': (context) => const HomeScreen(),
+        '/': (context) => const PhoneLoginScreen(),
         // '/': (context) => const GoldRatesScreen(),
         '/history': (context) {
           final String type =
