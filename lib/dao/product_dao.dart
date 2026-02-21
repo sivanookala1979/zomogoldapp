@@ -84,8 +84,26 @@ class ProductDao {
 
     return (snap.docs.first['price'] as num).toDouble();
   }
+
   Future<void> recordView(String productId) async {
     await _productRef.doc(productId).update({
-      'viewCount': FieldValue.increment(1)});
+      'viewCount': FieldValue.increment(1),
+    });
+  }
+
+  Stream<List<ProductModel>> getProductsByMetal(
+      String metalName,
+      String excludeProductId,
+      ) {
+    return _productRef
+        .where("metalName", isEqualTo: metalName)
+        .limit(10)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+          .where((doc) => doc.id != excludeProductId)
+          .map((doc) => ProductModel.fromSnapshot(doc))
+          .toList(),
+    );
   }
 }

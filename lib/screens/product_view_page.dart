@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
+import 'package:zomogoldapp/screens/product_card.dart';
 
 import '../dao/product_dao.dart';
 import '../models/price_calculator.dart';
 import '../models/product_model.dart';
+import 'full_screen_image.dart';
 
 const Color primaryPurple = Color(0xFF7F55B5);
 
@@ -27,6 +29,8 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
   double sellingPrice = 0;
   int _currentPage = 0;
   bool loading = true;
+  final Map<String, double> _rateCache = {};
+  List<Map<String, String>> _categoryList = [];
 
   @override
   void initState() {
@@ -41,6 +45,31 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
     } catch (e) {
       print("Error updating view count: $e");
     }
+  }
+
+  String _getCategoryName(String categoryId) {
+    if (_categoryList.isEmpty || categoryId.isEmpty) return "Jewellery";
+    try {
+      final category = _categoryList.firstWhere(
+        (cat) => cat['id'] == categoryId,
+        orElse: () => {'name': 'Jewellery'},
+      );
+      return category['name']!;
+    } catch (e) {
+      return "Jewellery";
+    }
+  }
+
+  Future<double> _getRate(String metal) async {
+    if (metal == "Select" || metal.isEmpty) return 0.0;
+    String key = metal.trim().toUpperCase();
+
+    if (_rateCache.containsKey(key)) return _rateCache[key]!;
+
+    final rate = await _productDao.getLatestRateByType(key);
+
+    _rateCache[key] = rate;
+    return rate;
   }
 
   Future<void> _loadProduct() async {
@@ -132,8 +161,24 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                   child: PageView.builder(
                     itemCount: product!.images.length,
                     onPageChanged: (i) => setState(() => _currentPage = i),
-                    itemBuilder: (_, i) =>
-                        Image.network(product!.images[i], fit: BoxFit.cover),
+                    itemBuilder: (_, i) => GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullScreenImagePage(
+                              images: product!.images,
+                              initialIndex: i,
+                              heroTagPrefix: "productImage_${product!.productId}",
+                            ),
+                          ),
+                        );
+                      },
+                      child: Hero(
+                        tag: "productImage_${product!.productId}_$i", // unique tag per image
+                        child: Image.network(product!.images[i], fit: BoxFit.cover),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -249,38 +294,146 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                     "You May Also Like",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
+
                   const SizedBox(height: 16),
 
                   SizedBox(
-                    height: 200,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: 3,
-                      separatorBuilder: (_, __) => const SizedBox(width: 16),
-                      itemBuilder: (context, index) => Container(
-                        width: 160,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: Colors.grey.shade100,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: product!.images.isNotEmpty
-                              ? Image.network(
-                                  product!.images[0],
-                                  fit: BoxFit.cover,
-                                )
-                              : const Icon(Icons.image),
-                        ),
+                    height: 280,
+                    child: StreamBuilder<List<ProductModel>>(
+                      stream: _productDao.getProductsByMetal(
+                        product!.metalName,
+                        widget.productId,
                       ),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text("No related products"),
+                          );
+                        }
+
+                        final relatedProducts = snapshot.data!;
+
+                        return ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: relatedProducts.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 16),
+                          itemBuilder: (context, index) {
+                            final item = relatedProducts[index];
+
+                            return SizedBox(
+                              width: 200,
+                              child: FutureBuilder<double>(
+                                future: _getRate(item.metalName),
+                                builder: (context, rateSnapshot) {
+                                  return MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ProductDetailsViewPage(
+                                              productId: item.productId,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: ProductCard(
+                                        product: item,
+                                        ratePerGram: rateSnapshot.data ?? 0.0,
+                                        categoryName: (item.productName.isNotEmpty)
+                                            ? item.productName
+                                            : _getCategoryName(item.categoryId),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                   ),
+
                   const SizedBox(height: 40),
                 ],
               ),
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF37BC69),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 3,
+                  ),
+                  onPressed: () {
+                    // TODO: Add WhatsApp logic
+                  },
+                  icon: const Icon(Icons.chat, color: Colors.white),
+                  label: const Text(
+                    "Order on Whatsapp",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryPurple,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 3,
+                  ),
+                  onPressed: () {
+                    // TODO: Add call logic
+                  },
+                  icon: const Icon(Icons.phone, color: Colors.white),
+                  label: const Text(
+                    "Call to Order",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
       ),
     );
   }

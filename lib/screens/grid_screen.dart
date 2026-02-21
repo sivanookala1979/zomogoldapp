@@ -148,9 +148,9 @@ class _GridScreenState extends State<GridScreen> {
 
         for (var product in fetchedProducts) {
           if (_activeSearchQuery != null && _activeSearchQuery!.isNotEmpty) {
-            bool matchesName = product.productName
-                .toLowerCase()
-                .contains(_activeSearchQuery!.toLowerCase());
+            bool matchesName = product.productName.toLowerCase().contains(
+              _activeSearchQuery!.toLowerCase(),
+            );
             if (!matchesName) continue;
           }
           bool matchesGender =
@@ -475,17 +475,9 @@ class _GridScreenState extends State<GridScreen> {
           ],
         ),
         actions: [
-          actionCircleIcon(
-            icon: Icons.favorite_border,
-            onTap: () {
-            },
-          ),
+          actionCircleIcon(icon: Icons.favorite_border, onTap: () {}),
           const SizedBox(width: 8),
-          actionCircleIcon(
-            icon: Icons.shopping_bag_outlined,
-            onTap: () {
-            },
-          ),
+          actionCircleIcon(icon: Icons.shopping_bag_outlined, onTap: () {}),
           const SizedBox(width: 16),
         ],
       ),
@@ -522,11 +514,14 @@ class _GridScreenState extends State<GridScreen> {
                           return FutureBuilder<double>(
                             future: _getRate(product.metalName),
                             builder: (context, snapshot) {
-                              return ProductCard(
-                                product: product,
-                                ratePerGram: snapshot.data ?? 0.0,
-                                categoryName: _getCategoryName(
-                                  product.categoryId,
+                              return MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: ProductCard(
+                                  product: product,
+                                  ratePerGram: snapshot.data ?? 0.0,
+                                  categoryName: (product.productName.isNotEmpty)
+                                      ? product.productName
+                                      : _getCategoryName(product.categoryId),
                                 ),
                               );
                             },
