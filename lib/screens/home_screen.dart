@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:zomogoldapp/screens/search_screen.dart';
 
+import '../theme/app_theme.dart';
+import 'custom_buttons.dart';
 import 'gold_rate.dart';
 import 'grid_screen.dart';
 
@@ -53,7 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _categoryList = snapshot.docs
-            .map((doc) => {'id':  doc["id"].toString(), 'name': doc['name'] as String})
+            .map(
+              (doc) => {
+                'id': doc["id"].toString(),
+                'name': doc['name'] as String,
+              },
+            )
             .toList();
       });
     } catch (e) {
@@ -129,9 +136,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.favorite_border, color: Colors.black),
-                  onPressed: () {},
+                const SizedBox(width: 8),
+                actionCircleIcon(
+                  icon: Icons.favorite_border,
+                  onTap: () => print("Wishlist tapped"),
+                ),
+                const SizedBox(width: 8),
+                actionCircleIcon(
+                  icon: Icons.shopping_bag_outlined,
+                  onTap: () => print("Cart tapped"),
                 ),
               ],
             ),
@@ -352,9 +365,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 String searchGender = name;
                 if (name == 'Boy') {
                   searchGender = 'Children';
-                }else if (name == 'Men') {
+                } else if (name == 'Men') {
                   searchGender = 'Male';
-                }if (name == 'Women') {
+                }
+                if (name == 'Women') {
                   searchGender = 'Female';
                 }
                 _navigateToGrid(context, genders: [searchGender]);

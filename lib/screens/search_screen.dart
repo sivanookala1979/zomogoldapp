@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'grid_screen.dart';
 import 'home_screen.dart';
-
+import '../screens/custom_buttons.dart';
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -14,6 +14,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, String>> _categoryList = [];
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -29,7 +30,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
     setState(() {
       _categoryList = snapshot.docs
-          .map((doc) => {'id':  doc["id"].toString(), 'name': doc['name'] as String})
+          .map(
+            (doc) => {
+              'id': doc["id"].toString(),
+              'name': doc['name'] as String,
+            },
+          )
           .toList();
     });
   }
@@ -49,13 +55,14 @@ class _SearchScreenState extends State<SearchScreen> {
     List<String>? metals,
     List<String>? genders,
     String? categorySearchName,
+    String? searchQuery,
   }) {
     List<String> categoryIds = [];
-
     if (categorySearchName != null) {
       String? id = _getCategoryIdByName(categorySearchName);
       if (id != null) categoryIds.add(id);
     }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -63,6 +70,7 @@ class _SearchScreenState extends State<SearchScreen> {
           initialMetals: metals ?? [],
           initialGenders: genders ?? [],
           initialCategoryIds: categoryIds,
+          initialSearchQuery: searchQuery,
         ),
       ),
     );
@@ -79,10 +87,10 @@ class _SearchScreenState extends State<SearchScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
+                  horizontal: 12,
+                  vertical: 10,
                 ),
-                color: const Color(0xFFFAF5FF),
+                color: Colors.white,
                 child: Row(
                   children: [
                     IconButton(
@@ -94,43 +102,65 @@ class _SearchScreenState extends State<SearchScreen> {
                         );
                       },
                     ),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        height: 50,
+                        height: 45,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEEAF7),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: AppColors.purple.withOpacity(0.2),
+                            width: 1.5,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Search',
-                                style: TextStyle(
-                                  color: AppColors.textColor,
-                                  fontSize: 16,
-                                ),
-                              ),
+                        child: TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) => _navigateToGrid(
+                            context,
+                            searchQuery: value.trim(),
+                          ),
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'Search...',
+                            hintStyle: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 15,
                             ),
-                            IconButton(
-                              icon: const Icon(
+
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 11,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
                                 Icons.search,
-                                color: Colors.black54,
+                                color: AppColors.purple[400],
+                                size: 22,
                               ),
                               onPressed: () {
-                                Navigator.push(
+                                _navigateToGrid(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => GridScreen(),
-                                  ),
+                                  searchQuery: _searchController.text.trim(),
                                 );
                               },
                             ),
-                          ],
+                          ),
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    actionCircleIcon(
+                      icon: Icons.favorite_border,
+                      onTap: () => print("Wishlist tapped"),
+                    ),
+                    const SizedBox(width: 8),
+                    actionCircleIcon(
+                      icon: Icons.shopping_bag_outlined,
+                      onTap: () => print("Cart tapped"),
                     ),
                   ],
                 ),
@@ -224,6 +254,7 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+
 
   Widget _sectionTitle(String title) {
     return Padding(

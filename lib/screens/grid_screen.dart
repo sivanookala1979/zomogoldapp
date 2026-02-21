@@ -5,6 +5,7 @@ import '../dao/product_dao.dart';
 import '../models/price_calculator.dart';
 import '../models/product_model.dart';
 import '../models/product_sort.dart';
+import 'custom_buttons.dart';
 import 'filter_screen.dart';
 import 'product_card.dart';
 
@@ -12,12 +13,14 @@ class GridScreen extends StatefulWidget {
   final List<String> initialMetals;
   final List<String> initialGenders;
   final List<String> initialCategoryIds;
+  final String? initialSearchQuery;
 
   const GridScreen({
     super.key,
     this.initialMetals = const [],
     this.initialGenders = const [],
     this.initialCategoryIds = const [],
+    this.initialSearchQuery,
   });
 
   @override
@@ -41,6 +44,7 @@ class _GridScreenState extends State<GridScreen> {
   double? _currentMinPrice;
   double? _currentMaxPrice;
   ProductSortType _currentSort = ProductSortType.newArrivals;
+  String? _activeSearchQuery;
 
   @override
   void initState() {
@@ -48,6 +52,7 @@ class _GridScreenState extends State<GridScreen> {
     _activeMetals = List.from(widget.initialMetals);
     _activeGenders = List.from(widget.initialGenders);
     _activeCategoryIds = List.from(widget.initialCategoryIds);
+    _activeSearchQuery = widget.initialSearchQuery;
     _fetchProducts();
     _loadCategories();
     _scrollController.addListener(() {
@@ -142,6 +147,12 @@ class _GridScreenState extends State<GridScreen> {
         List<ProductModel> filteredItems = [];
 
         for (var product in fetchedProducts) {
+          if (_activeSearchQuery != null && _activeSearchQuery!.isNotEmpty) {
+            bool matchesName = product.productName
+                .toLowerCase()
+                .contains(_activeSearchQuery!.toLowerCase());
+            if (!matchesName) continue;
+          }
           bool matchesGender =
               _activeGenders.isEmpty || _activeGenders.contains(product.gender);
           if (!matchesGender) continue;
@@ -445,9 +456,11 @@ class _GridScreenState extends State<GridScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Jewellery",
-              style: TextStyle(
+            Text(
+              (_activeSearchQuery != null && _activeSearchQuery!.isNotEmpty)
+                  ? _activeSearchQuery!.toUpperCase()
+                  : "",
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -456,12 +469,27 @@ class _GridScreenState extends State<GridScreen> {
             Text(
               _isLoading && _products.isEmpty
                   ? "Updating..."
-                  : "Found ${_products.length} products",
+                  : "${_products.length} products",
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           ],
         ),
+        actions: [
+          actionCircleIcon(
+            icon: Icons.favorite_border,
+            onTap: () {
+            },
+          ),
+          const SizedBox(width: 8),
+          actionCircleIcon(
+            icon: Icons.shopping_bag_outlined,
+            onTap: () {
+            },
+          ),
+          const SizedBox(width: 16),
+        ],
       ),
+
       body: RefreshIndicator(
         onRefresh: () => _fetchProducts(isRefresh: true),
         child: Padding(
