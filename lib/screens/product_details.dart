@@ -799,6 +799,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 productId: productId,
                 categoryId: _selectedCategoryId ?? "",
                 productName: _productNameController.text,
+                productNameLower: _productNameController.text.toLowerCase(),
                 userId: "",
                 images: imageUrls,
                 metalName: _selectedMetal,

@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../screens/custom_buttons.dart';
 import '../theme/app_theme.dart';
 import 'grid_screen.dart';
 import 'home_screen.dart';
-import '../screens/custom_buttons.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -16,11 +18,13 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, String>> _categoryList = [];
   final TextEditingController _searchController = TextEditingController();
+  List<String> recentSearches = [];
 
   @override
   void initState() {
     super.initState();
     _loadCategories();
+    loadRecentSearches();
   }
 
   Future<void> _loadCategories() async {
@@ -77,6 +81,55 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Future<List<String>> _getSuggestions(String query) async {
+    if (query.isEmpty) return [];
+
+    String searchKey = query.toLowerCase();
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('Products')
+        .where("productNameLower", isGreaterThanOrEqualTo: searchKey)
+        .where("productNameLower", isLessThanOrEqualTo: "$searchKey\uf8ff")
+        .orderBy("productNameLower")
+        .limit(10)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => doc["productName"].toString())
+        .toSet()
+        .toList();
+  }
+
+  Future<void> loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getStringList('recent_searches') ?? [];
+    setState(() {
+      recentSearches = data;
+    });
+  }
+
+  Future<void> saveRecentSearch(String search) async {
+    search = search.trim();
+    if (search.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    List<String> searches = prefs.getStringList('recent_searches') ?? [];
+
+    searches.remove(search);
+    searches.insert(0, search);
+
+    if (searches.length > 5) {
+      searches = searches.sublist(0, 5);
+    }
+
+    await prefs.setStringList('recent_searches', searches);
+
+    setState(() {
+      recentSearches = searches;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,45 +167,61 @@ class _SearchScreenState extends State<SearchScreen> {
                             width: 1.5,
                           ),
                         ),
-                        child: TextField(
-                          controller: _searchController,
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: (value) => _navigateToGrid(
-                            context,
-                            searchQuery: value.trim(),
-                          ),
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 16,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search...',
-                            hintStyle: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 15,
-                            ),
-
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 11,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                Icons.search,
-                                color: AppColors.purple[400],
-                                size: 22,
+                        child: TypeAheadField<String>(
+                          suggestionsCallback: (pattern) async {
+                            return await _getSuggestions(pattern);
+                          },
+                          itemBuilder: (context, suggestion) {
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                mouseCursor: SystemMouseCursors.click,
+                                onTap: () {
+                                  _searchController.text = suggestion;
+                                  saveRecentSearch(suggestion);
+                                  _navigateToGrid(
+                                    context,
+                                    searchQuery: suggestion,
+                                  );
+                                },
+                                child: ListTile(
+                                  leading: const Icon(Icons.search),
+                                  title: Text(
+                                    suggestion,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  trailing: const Icon(Icons.north_west),
+                                ),
                               ),
-                              onPressed: () {
+                            );
+                          },
+                          onSelected: (suggestion) {
+                            _searchController.text = suggestion;
+                            saveRecentSearch(suggestion);
+                            _navigateToGrid(context, searchQuery: suggestion);
+                          },
+                          emptyBuilder: (context) => SizedBox(),
+                          builder: (context, controller, focusNode) {
+                            return TextField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: (value) {
+                                saveRecentSearch(value);
                                 _navigateToGrid(
                                   context,
-                                  searchQuery: _searchController.text.trim(),
+                                  searchQuery: value.trim(),
                                 );
                               },
-                            ),
-                          ),
+                              decoration: InputDecoration(
+                                hintText: "Search...",
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                prefixIcon: const Icon(Icons.search),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -178,10 +247,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     _sectionTitle("Recent searches"),
                     Wrap(
                       spacing: 10,
-                      children: [
-                        _pillChip("Bracelet"),
-                        _pillChip("Platinum ring"),
-                      ],
+                      children: recentSearches
+                          .map((search) => _pillChip(search))
+                          .toList(),
                     ),
 
                     const SizedBox(height: 30),
@@ -271,7 +339,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _pillChip(String label) {
     return OutlinedButton(
-      onPressed: () {},
+      onPressed: () {
+        _searchController.text = label;
+        _navigateToGrid(context, searchQuery: label);
+      },
       style: OutlinedButton.styleFrom(
         side: const BorderSide(color: Color(0xFFE0E0E0)),
         shape: const StadiumBorder(),

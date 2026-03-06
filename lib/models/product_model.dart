@@ -4,6 +4,7 @@ class ProductModel {
   final String productId;
   final String categoryId;
   final String productName;
+  final String productNameLower;
   final String userId;
   final List<String> images;
   final String metalName;
@@ -28,6 +29,7 @@ class ProductModel {
     required this.productId,
     required this.categoryId,
     required this.productName,
+    required this.productNameLower,
     required this.userId,
     required this.images,
     required this.metalName,
@@ -56,6 +58,7 @@ class ProductModel {
       productId: data["productId"],
       categoryId: data["categoryId"],
       productName: data["productName"] ?? "",
+      productNameLower: data["productNameLower"] ?? "",
       userId: data["userId"],
       images: List<String>.from(data["images"] ?? []),
       metalName: data["metalName"],
@@ -83,6 +86,7 @@ class ProductModel {
       "productId": productId,
       "categoryId": categoryId,
       "productName": productName,
+      "productNameLower": productNameLower,
       "userId": userId,
       "images": images,
       "metalName": metalName,

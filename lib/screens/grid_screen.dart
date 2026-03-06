@@ -458,7 +458,7 @@ class _GridScreenState extends State<GridScreen> {
           children: [
             Text(
               (_activeSearchQuery != null && _activeSearchQuery!.isNotEmpty)
-                  ? _activeSearchQuery!.toUpperCase()
+                  ? _activeSearchQuery!
                   : "",
               style: const TextStyle(
                 color: Colors.black,
