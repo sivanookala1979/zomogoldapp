@@ -1,13 +1,18 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
+import 'package:zomogoldapp/models/wish_list_model.dart';
 import 'package:zomogoldapp/screens/product_card.dart';
+import 'package:zomogoldapp/screens/toast_helper.dart';
 
 import '../dao/product_dao.dart';
+import '../dao/wish_list_dao.dart';
 import '../models/price_calculator.dart';
 import '../models/product_model.dart';
+import '../theme/app_theme.dart';
 import 'full_screen_image.dart';
 
 const Color primaryPurple = Color(0xFF7F55B5);
@@ -31,12 +36,29 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
   bool loading = true;
   final Map<String, double> _rateCache = {};
   List<Map<String, String>> _categoryList = [];
+  bool _isInWishlist = false;
 
   @override
   void initState() {
     super.initState();
     _loadProduct();
+    _checkWishlist();
     incrementProductView();
+  }
+
+  Future<void> _checkWishlist() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final wishlistDao = WishlistDao();
+    final exists = await wishlistDao.isProductInWishlist(
+      user.uid,
+      widget.productId,
+    );
+
+    setState(() {
+      _isInWishlist = exists;
+    });
   }
 
   Future<void> incrementProductView() async {
@@ -169,14 +191,18 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                             builder: (_) => FullScreenImagePage(
                               images: product!.images,
                               initialIndex: i,
-                              heroTagPrefix: "productImage_${product!.productId}",
+                              heroTagPrefix:
+                                  "productImage_${product!.productId}",
                             ),
                           ),
                         );
                       },
                       child: Hero(
-                        tag: "productImage_${product!.productId}_$i", // unique tag per image
-                        child: Image.network(product!.images[i], fit: BoxFit.cover),
+                        tag: "productImage_${product!.productId}_$i",
+                        child: Image.network(
+                          product!.images[i],
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
@@ -224,14 +250,73 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                       ),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.favorite_border,
-                            color: Colors.black54,
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () async {
+                                final user = FirebaseAuth.instance.currentUser;
+                                if (user == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Please log in first"),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                final currentUserId = user.uid;
+                                final wishlistDao = WishlistDao();
+                                if (_isInWishlist) {
+                                  await wishlistDao.removeProduct(
+                                    currentUserId,
+                                    product!.productId,
+                                  );
+                                  setState(() => _isInWishlist = false);
+                                  ToastHelper.showWishlistToast(
+                                    context,
+                                    message: "Removed from wishlist",
+                                    isAdded: false,
+                                  );
+                                } else {
+                                  final wishlistId = await wishlistDao
+                                      .generateNextWishlistId();
+                                  final wishlistItem = WishlistModel(
+                                    wishlistId: wishlistId.toString(),
+                                    userId: currentUserId,
+                                    productId: product!.productId,
+                                    createdAt: DateTime.now(),
+                                  );
+                                  await wishlistDao.addProduct(wishlistItem);
+                                  setState(() => _isInWishlist = true);
+                                  ToastHelper.showWishlistToast(
+                                    context,
+                                    message: "Added to wishlist",
+                                    isAdded: true,
+                                  );
+                                }
+                              },
+                              child: Icon(
+                                _isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                color: _isInWishlist ? Color(0xFF9C27B0) : Colors.black54,
+                              )
+                            ),
                           ),
                           const SizedBox(width: 16),
-                          const Icon(
-                            Icons.share_outlined,
-                            color: Colors.black54,
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Share clicked"),
+                                  ),
+                                );
+                              },
+                              child: const Icon(
+                                Icons.share_outlined,
+                                color: Colors.black54,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -340,16 +425,18 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                                         Navigator.pushReplacement(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => ProductDetailsViewPage(
-                                              productId: item.productId,
-                                            ),
+                                            builder: (_) =>
+                                                ProductDetailsViewPage(
+                                                  productId: item.productId,
+                                                ),
                                           ),
                                         );
                                       },
                                       child: ProductCard(
                                         product: item,
                                         ratePerGram: rateSnapshot.data ?? 0.0,
-                                        categoryName: (item.productName.isNotEmpty)
+                                        categoryName:
+                                            (item.productName.isNotEmpty)
                                             ? item.productName
                                             : _getCategoryName(item.categoryId),
                                       ),
@@ -383,57 +470,57 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
             ),
           ],
         ),
-          child: Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF37BC69),
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 3,
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF37BC69),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  onPressed: () {
-                    // TODO: Add WhatsApp logic
-                  },
-                  icon: const Icon(Icons.chat, color: Colors.white),
-                  label: const Text(
-                    "Order on Whatsapp",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  elevation: 3,
+                ),
+                onPressed: () {
+                  // TODO: Add WhatsApp logic
+                },
+                icon: const Icon(Icons.chat, color: Colors.white),
+                label: const Text(
+                  "Order on Whatsapp",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPurple,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 3,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  onPressed: () {
-                    // TODO: Add call logic
-                  },
-                  icon: const Icon(Icons.phone, color: Colors.white),
-                  label: const Text(
-                    "Call to Order",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  elevation: 3,
+                ),
+                onPressed: () {
+                  // TODO: Add call logic
+                },
+                icon: const Icon(Icons.phone, color: Colors.white),
+                label: const Text(
+                  "Call to Order",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ),
     );
   }
