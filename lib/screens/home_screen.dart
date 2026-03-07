@@ -5,6 +5,7 @@ import 'package:zomogoldapp/screens/search_screen.dart';
 import 'package:zomogoldapp/screens/wishlist_screen.dart';
 
 import 'category_screen.dart';
+import 'category_service.dart';
 import 'custom_buttons.dart';
 import 'gold_rate.dart';
 import 'grid_screen.dart';
@@ -46,7 +47,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    CategoryService().loadCategories().then((_) {
+      setState(() {
+        _categoryList = CategoryService().categories;
+      });
+    });
   }
 
   Future<void> _loadCategories() async {
@@ -140,10 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
                 const SizedBox(width: 8),
-                actionCircleIcon(
-                  icon: Icons.favorite_border,
-                  context: context,
-                ),
+                actionCircleIcon(icon: Icons.favorite_border, context: context),
                 const SizedBox(width: 8),
                 actionCircleIcon(
                   icon: Icons.shopping_bag_outlined,

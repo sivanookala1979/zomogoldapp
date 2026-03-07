@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+
 import '../screens/cart_screen.dart';
 import '../screens/wishlist_screen.dart';
+import '../theme/app_theme.dart';
 
 Widget actionCircleIcon({
   required IconData icon,
@@ -10,14 +11,14 @@ Widget actionCircleIcon({
   required BuildContext context,
 }) {
   return InkWell(
-    onTap: () {
+    onTap: () async {
       if (icon == Icons.favorite_border) {
-        Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const WishlistScreen()),
         );
       } else if (icon == Icons.shopping_bag_outlined) {
-        Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const CartScreen()),
         );
@@ -33,11 +34,7 @@ Widget actionCircleIcon({
         color: backgroundColor ?? AppColors.textColor,
         shape: BoxShape.circle,
       ),
-      child: Icon(
-        icon,
-        color: Colors.white,
-        size: 20,
-      ),
+      child: Icon(icon, color: Colors.white, size: 20),
     ),
   );
 }

@@ -475,7 +475,13 @@ class _GridScreenState extends State<GridScreen> {
           ],
         ),
         actions: [
-          actionCircleIcon(icon: Icons.favorite_border, context: context),
+          actionCircleIcon(
+            icon: Icons.favorite_border,
+            context: context,
+            onTap: () {
+              setState(() {});
+            },
+          ),
           const SizedBox(width: 8),
           actionCircleIcon(icon: Icons.shopping_bag_outlined, context: context),
           const SizedBox(width: 16),
@@ -522,6 +528,7 @@ class _GridScreenState extends State<GridScreen> {
                                   categoryName: (product.productName.isNotEmpty)
                                       ? product.productName
                                       : _getCategoryName(product.categoryId),
+                                  isFromWishlist: false,
                                 ),
                               );
                             },
