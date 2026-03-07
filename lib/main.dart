@@ -1,13 +1,15 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:zomogoldapp/screens/history_screen.dart';
-import 'package:zomogoldapp/screens/home_screen.dart';
+import 'package:zomogoldapp/screens/product_view_page.dart';
 
 import 'screens/phone_login_screen.dart';
-import 'screens/gold_rate.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -28,12 +30,41 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final AppLinks _appLinks;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _appLinks = AppLinks();
+
+    _appLinks.uriLinkStream.listen((uri) {
+      if (uri.pathSegments.contains('product')) {
+        final productId = uri.pathSegments.last;
+
+        navigatorKey.currentState!.push(
+          MaterialPageRoute(
+            builder: (_) => ProductDetailsViewPage(productId: productId),
+          ),
+        );
+      }
+    });
+  }
+
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Phone Login Demo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

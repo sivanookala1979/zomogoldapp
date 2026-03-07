@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zomogoldapp/models/wish_list_model.dart';
 import 'package:zomogoldapp/screens/product_card.dart';
 import 'package:zomogoldapp/screens/toast_helper.dart';
@@ -296,9 +297,13 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                                 }
                               },
                               child: Icon(
-                                _isInWishlist ? Icons.favorite : Icons.favorite_border,
-                                color: _isInWishlist ? Color(0xFF9C27B0) : Colors.black54,
-                              )
+                                _isInWishlist
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: _isInWishlist
+                                    ? Color(0xFF9C27B0)
+                                    : Colors.black54,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -483,7 +488,7 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                   elevation: 3,
                 ),
                 onPressed: () {
-                  // TODO: Add WhatsApp logic
+                  _orderOnWhatsapp();
                 },
                 icon: const Icon(Icons.chat, color: Colors.white),
                 label: const Text(
@@ -507,7 +512,7 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
                   elevation: 3,
                 ),
                 onPressed: () {
-                  // TODO: Add call logic
+                  _callToOrder();
                 },
                 icon: const Icon(Icons.phone, color: Colors.white),
                 label: const Text(
@@ -560,6 +565,39 @@ class _ProductDetailsViewPageState extends State<ProductDetailsViewPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _callToOrder() async {
+    const phoneNumber = "tel:+918790343501";
+
+    final Uri phoneUri = Uri.parse(phoneNumber);
+
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      debugPrint("Could not launch phone dialer");
+    }
+  }
+
+  Future<void> _orderOnWhatsapp() async {
+    const phoneNumber = "918790343501";
+
+    final productLink = "https://zomogold.com/product/${product!.productId}";
+
+    final message =
+        """
+💎 ${product!.productName}
+💰 ₹${sellingPrice.toStringAsFixed(0)}
+
+View Product:
+$productLink
+""";
+
+    final Uri whatsappUri = Uri.parse(
+      "https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}",
+    );
+
+    await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
   }
 
   Widget _expandableSection(String title, String quillJson) {
