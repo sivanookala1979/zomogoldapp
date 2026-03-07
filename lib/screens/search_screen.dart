@@ -185,7 +185,6 @@ class _SearchScreenState extends State<SearchScreen> {
                                   );
                                 },
                                 child: ListTile(
-                                  leading: const Icon(Icons.search),
                                   title: Text(
                                     suggestion,
                                     style: const TextStyle(fontSize: 16),
@@ -218,7 +217,17 @@ class _SearchScreenState extends State<SearchScreen> {
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
-                                prefixIcon: const Icon(Icons.search),
+                                contentPadding: const EdgeInsets.all(10.0),
+                                suffixIcon: IconButton(
+                                  icon: const  Icon(Icons.search),
+                                  onPressed: () {
+                                    final value = controller.text.trim();
+                                    if (value.isNotEmpty) {
+                                      saveRecentSearch(value);
+                                    }
+                                    _navigateToGrid(context, searchQuery: value);
+                                  },
+                                ),
                               ),
                             );
                           },
