@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../services/tsc_printer.dart';
 import '../theme/app_theme.dart';
 import 'otp_verification_screen.dart';
 
@@ -18,6 +19,25 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   void dispose() {
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _testPrint() async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Sending test label to printer...')),
+    );
+    try {
+      await TscPrinter.printTestLabel();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Test label sent to TSC TE244.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Print failed: $e')),
+      );
+    }
   }
 
   Future<void> _sendOtp() async {
@@ -85,6 +105,32 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       body: SafeArea(
         child: Stack(
           children: [
+            Positioned(
+              top: 16,
+              left: 16,
+              child: OutlinedButton.icon(
+                onPressed: _testPrint,
+                icon: Icon(Icons.print, size: 18, color: AppColors.purple[600]),
+                label: Text(
+                  "Test Print",
+                  style: TextStyle(
+                    color: AppColors.purple[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.purple[600]!),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+            ),
+
             Positioned(
               top: 16,
               right: 16,
