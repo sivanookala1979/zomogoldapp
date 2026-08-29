@@ -72,7 +72,7 @@ class TscPrinter {
         );
       }
 
-      final tspl = _buildTestLabel();
+      final tspl = _buildTestLabelTag();
       await device.transferOut(target.endpointNumber, tspl.toJS).toDart;
     } finally {
       await device.close().toDart;
@@ -101,6 +101,33 @@ class TscPrinter {
       }
     }
     return fallback;
+  }
+  static Uint8List _buildTestLabelTag() {
+    final commands = StringBuffer()
+      ..writeln('SIZE 100 mm,15 mm')
+      ..writeln('GAP 2 mm,0 mm')
+      ..writeln('DIRECTION 1')
+      ..writeln('CLS')
+      ..writeln('QRCODE 30,40 https://www.google.com')
+      ..writeln('TEXT 100,40,"2",0,1,1,"ZOMO JEWELLERS"')
+      ..writeln('TEXT 100,70,"2",0,0,0,"Ring 91.6 carat gold"')
+      ..writeln('TEXT 100,90,"2",0,1,0,"Gross 4.6789g"')
+      ..writeln('TEXT 100,100,"2",0,1,1,"Net 4.3456g"')
+      ..writeln('PRINT 1,1');
+    return Uint8List.fromList(latin1.encode(commands.toString()));
+  }
+
+  static Uint8List _buildTestLabelTagYuktha() {
+    final commands = StringBuffer()
+      ..writeln('SIZE 100 mm,15 mm')
+      ..writeln('GAP 2 mm,0 mm')
+      ..writeln('DIRECTION 1')
+      ..writeln('CLS')
+      ..writeln('TEXT 35,45,"3",0,1,1,"YUKTHA GATTU   Section 3A"')
+      ..writeln('TEXT 35,75,"2",0,1,1,"Father 9985319822 Mother 9052736741"')
+      ..writeln('TEXT 35,100,"2",0,1,1,"Orchids International School, Uppal"')
+      ..writeln('PRINT 1,1');
+    return Uint8List.fromList(latin1.encode(commands.toString()));
   }
 
   /// TSPL program for a 50mm x 30mm label on a 203-dpi TE244.
