@@ -1,0 +1,7 @@
+firebase logout
+firebase login
+
+firebase init hosting
+
+flutter build web --release
+firebase deploy
