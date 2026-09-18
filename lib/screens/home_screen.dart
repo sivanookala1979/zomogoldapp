@@ -10,6 +10,7 @@ import 'custom_buttons.dart';
 import 'gold_rate.dart';
 import 'grid_screen.dart';
 import 'orders_screen.dart';
+import 'barcode_scan_screen.dart';
 
 void main() {
   runApp(
@@ -143,6 +144,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (_) => SearchScreen()),
                     );
                   },
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner, color: Colors.black),
+                  tooltip: 'Scan Product',
+                 onPressed: () {
+                  Navigator.push(
+                   context,
+                   MaterialPageRoute(
+                    builder: (_) => const BarcodeScanScreen(),
+                   ),
+                  );
+                 },
                 ),
                 const SizedBox(width: 8),
                 actionCircleIcon(icon: Icons.favorite_border, context: context),

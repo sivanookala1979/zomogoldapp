@@ -8,8 +8,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:zomogoldapp/screens/history_screen.dart';
 import 'package:zomogoldapp/screens/product_view_page.dart';
+import 'package:zomogoldapp/screens/gold_rate.dart';
+import 'package:zomogoldapp/screens/home_screen.dart';
 
 import 'screens/phone_login_screen.dart';
+
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -27,6 +30,7 @@ Future<void> main() async {
   } else {
     await Firebase.initializeApp();
   }
+  
   runApp(const MyApp());
 }
 
