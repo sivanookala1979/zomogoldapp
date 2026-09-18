@@ -25,6 +25,18 @@ class ProductModel {
   final String gender;
   final int viewCount;
 
+  // Jewellery label fields
+  final int pieceCount;
+  final String ornamentType;
+  final String designCode;
+  final double otherCharges;
+  final double americanDiamondWeight;
+  final int americanDiamondCount;
+  final double kundanWeight;
+  final int kundanCount;
+  final int stoneCount;
+  final String manufacturingNumber;
+
   ProductModel({
     required this.productId,
     required this.categoryId,
@@ -49,6 +61,16 @@ class ProductModel {
     required this.modifiedTimestamp,
     required this.gender,
     required this.viewCount,
+    required this.pieceCount,
+    required this.ornamentType,
+    required this.designCode,
+    required this.otherCharges,
+    required this.americanDiamondWeight,
+    required this.americanDiamondCount,
+    required this.kundanWeight,
+    required this.kundanCount,
+    required this.stoneCount,
+    required this.manufacturingNumber,
   });
 
   factory ProductModel.fromSnapshot(DocumentSnapshot snap) {
@@ -74,10 +96,30 @@ class ProductModel {
       productInformation: data["productInformation"],
       specifications: data["specifications"] ?? "",
       hallmark: data["hallmark"] ?? false,
-      createdTimestamp: (data["createdTimestamp"] as Timestamp).toDate(),
-      modifiedTimestamp: (data["modifiedTimestamp"] as Timestamp).toDate(),
+      createdTimestamp:
+          (data["createdTimestamp"] as Timestamp).toDate(),
+      modifiedTimestamp:
+          (data["modifiedTimestamp"] as Timestamp).toDate(),
       gender: data["gender"] ?? "Unisex",
       viewCount: data["viewCount"] ?? 0,
+
+      // Jewellery label fields
+      pieceCount: (data["pieceCount"] ?? 1).toInt(),
+      ornamentType: data["ornamentType"] ?? "",
+      designCode: data["designCode"] ?? "",
+      otherCharges: (data["otherCharges"] ?? 0).toDouble(),
+      americanDiamondWeight:
+          (data["americanDiamondWeight"] ?? 0).toDouble(),
+      americanDiamondCount:
+          (data["americanDiamondCount"] ?? 0).toInt(),
+      kundanWeight:
+          (data["kundanWeight"] ?? 0).toDouble(),
+      kundanCount:
+          (data["kundanCount"] ?? 0).toInt(),
+      stoneCount:
+          (data["stoneCount"] ?? 0).toInt(),
+      manufacturingNumber:
+          data["manufacturingNumber"] ?? "",
     );
   }
 
@@ -106,6 +148,18 @@ class ProductModel {
       "modifiedTimestamp": Timestamp.fromDate(modifiedTimestamp),
       "gender": gender,
       "viewCount": viewCount,
+
+      // Jewellery label fields
+      "pieceCount": pieceCount,
+      "ornamentType": ornamentType,
+      "designCode": designCode,
+      "otherCharges": otherCharges,
+      "americanDiamondWeight": americanDiamondWeight,
+      "americanDiamondCount": americanDiamondCount,
+      "kundanWeight": kundanWeight,
+      "kundanCount": kundanCount,
+      "stoneCount": stoneCount,
+      "manufacturingNumber": manufacturingNumber,
     };
   }
 }

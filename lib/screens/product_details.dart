@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import '../dao/product_dao.dart';
+import '../models/product_model.dart';
+import '../services/product_id_generator.dart';
 
 import 'package:another_flushbar/flushbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,9 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/barcode_renderer.dart';
 
-import '../dao/product_dao.dart';
-import '../models/product_model.dart';
+
 
 const Color primaryPurple = Color(0xFF7F55B5);
 
@@ -24,6 +27,7 @@ class ProductDetailsPage extends StatefulWidget {
 }
 
 class _ProductDetailsPageState extends State<ProductDetailsPage> {
+  String? _generatedProductId;
   final List<dynamic> _extraImages = [];
   final PageController _pageController = PageController();
 
@@ -62,12 +66,34 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   ];
 
   final TextEditingController _metalGramsController = TextEditingController();
-  final TextEditingController _productNameController = TextEditingController();
-  final TextEditingController _stoneWeightController = TextEditingController();
-  final TextEditingController _stoneCostController = TextEditingController();
-  final TextEditingController _makingChargesController =
-      TextEditingController();
-  final TextEditingController _discountController = TextEditingController();
+final TextEditingController _productNameController = TextEditingController();
+final TextEditingController _stoneWeightController = TextEditingController();
+final TextEditingController _stoneCostController = TextEditingController();
+final TextEditingController _makingChargesController =
+    TextEditingController();
+final TextEditingController _discountController = TextEditingController();
+
+// Jewellery tag fields
+final TextEditingController _pieceCountController =
+    TextEditingController(text: "1");
+final TextEditingController _ornamentTypeController =
+    TextEditingController();
+final TextEditingController _designCodeController =
+    TextEditingController();
+final TextEditingController _otherChargesController =
+    TextEditingController();
+final TextEditingController _americanDiamondWeightController =
+    TextEditingController();
+final TextEditingController _americanDiamondCountController =
+    TextEditingController();
+final TextEditingController _kundanWeightController =
+    TextEditingController();
+final TextEditingController _kundanCountController =
+    TextEditingController();
+final TextEditingController _stoneCountController =
+    TextEditingController();
+final TextEditingController _manufacturingNumberController =
+    TextEditingController();
 
   late QuillController _productDetailsController;
   late QuillController _specificationsController;
@@ -99,6 +125,18 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     _stoneCostController.dispose();
     _makingChargesController.dispose();
     _discountController.dispose();
+
+// Jewellery tag fields
+    _pieceCountController.dispose();
+    _ornamentTypeController.dispose();
+    _designCodeController.dispose();
+    _otherChargesController.dispose();
+    _americanDiamondWeightController.dispose();
+    _americanDiamondCountController.dispose();
+    _kundanWeightController.dispose();
+    _kundanCountController.dispose();
+    _stoneCountController.dispose();
+    _manufacturingNumberController.dispose();
     _productDetailsController.dispose();
     _specificationsController.dispose();
     _productDetailsFocus.dispose();
@@ -729,15 +767,102 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   ),
 
                   _buildSectionLabel("Discount"),
-                  _buildTextField(
-                    _discountController,
-                    hint: "0",
-                    keyboard: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                  ),
+_buildTextField(
+  _discountController,
+  hint: "0",
+  keyboard: const TextInputType.numberWithOptions(
+    decimal: true,
+  ),
+),
 
-                  _buildSectionLabel("Product Details"),
+// ============================================================
+// JEWELLERY TAG DETAILS
+// ============================================================
+
+_buildSectionLabel("Jewellery Tag Details"),
+
+_buildTextField(
+  _pieceCountController,
+  hint: "Piece Count",
+  keyboard: TextInputType.number,
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _ornamentTypeController,
+  hint: "Ornament Type (Example: Necklace)",
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _designCodeController,
+  hint: "Design Code (Example: 539)",
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _otherChargesController,
+  hint: "Other Charges",
+  keyboard: const TextInputType.numberWithOptions(
+    decimal: true,
+  ),
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _americanDiamondWeightController,
+  hint: "AD Weight",
+  keyboard: const TextInputType.numberWithOptions(
+    decimal: true,
+  ),
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _americanDiamondCountController,
+  hint: "AD Count",
+  keyboard: TextInputType.number,
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _kundanWeightController,
+  hint: "Kundan Weight",
+  keyboard: const TextInputType.numberWithOptions(
+    decimal: true,
+  ),
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _kundanCountController,
+  hint: "Kundan Count",
+  keyboard: TextInputType.number,
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _stoneCountController,
+  hint: "Stone Count",
+  keyboard: TextInputType.number,
+),
+
+const SizedBox(height: 12),
+
+_buildTextField(
+  _manufacturingNumberController,
+  hint: "Manufacturing Number (Example: M2102)",
+),
+
+_buildSectionLabel("Product Details"),
                   _buildRichTextEditor(
                     _productDetailsController,
                     "Enter product story...",
@@ -772,6 +897,28 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  if (_generatedProductId != null) ...[
+  const SizedBox(height: 20),
+  const Text(
+    "Product ID",
+    style: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  const SizedBox(height: 8),
+  Text(
+    _generatedProductId!,
+    style: const TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
+    ),
+  ),
+  const SizedBox(height: 12),
+  BarcodeRenderer(
+    productId: _generatedProductId!,
+  ),
+],
                 ],
               ),
             ),
@@ -792,8 +939,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             if (!_validateForm()) return;
             try {
               final productDao = ProductDao();
-              final productId = (await productDao.generateNextProductId())
-                  .toString();
+              final productId = await ProductIdGenerator.generate(productDao);
+              setState(() {
+               _generatedProductId = productId;
+              });
               final imageUrls = await _uploadImages(productId);
               final product = ProductModel(
                 productId: productId,
@@ -819,6 +968,23 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 modifiedTimestamp: DateTime.now(),
                 gender: _selectedGender,
                 viewCount: 0,
+                // Jewellery label fields
+                // Jewellery label fields
+pieceCount: int.tryParse(_pieceCountController.text.trim()) ?? 1,
+ornamentType: _ornamentTypeController.text.trim(),
+designCode: _designCodeController.text.trim(),
+otherCharges: _toDouble(_otherChargesController),
+americanDiamondWeight:
+    _toDouble(_americanDiamondWeightController),
+americanDiamondCount:
+    int.tryParse(_americanDiamondCountController.text.trim()) ?? 0,
+kundanWeight: _toDouble(_kundanWeightController),
+kundanCount:
+    int.tryParse(_kundanCountController.text.trim()) ?? 0,
+stoneCount:
+    int.tryParse(_stoneCountController.text.trim()) ?? 0,
+manufacturingNumber:
+    _manufacturingNumberController.text.trim(),
               );
               await productDao.addProduct(product);
               _showFancyToast("Product saved successfully", isError: false);

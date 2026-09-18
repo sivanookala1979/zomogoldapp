@@ -23,6 +23,10 @@ class ProductDao {
     DocumentSnapshot doc = await _productRef.doc(productId).get();
     return ProductModel.fromSnapshot(doc);
   }
+  Future<bool> productIdExists(String productId) async {
+  final doc = await _productRef.doc(productId).get();
+  return doc.exists;
+  }
 
   Stream<List<ProductModel>> getAllProducts() {
     return _productRef.snapshots().map(
