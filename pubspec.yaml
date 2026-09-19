@@ -44,7 +44,7 @@ dependencies:
   xml: ^6.5.0
   image_picker: ^1.2.1
   reorderables: ^0.6.0
-  flutter_quill: ^11.5.0
+  flutter_quill: 11.5.1
   fl_chart: ^1.1.1
   intl: ^0.20.2
   another_flushbar: ^1.12.30
@@ -53,6 +53,9 @@ dependencies:
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.6
   app_links: ^3.5.0
+  barcode: ^2.2.9
+  barcode_widget: ^2.0.4
+  flutter_svg: ^2.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
