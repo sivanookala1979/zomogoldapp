@@ -27,7 +27,7 @@ class TscPrinter {
     if (usb == null) {
       throw UnsupportedError(
         'WebUSB is not supported by this browser. Use a recent Chrome/Edge '
-        'over HTTPS (or localhost).',
+            'over HTTPS (or localhost).',
       );
     }
 
@@ -39,15 +39,11 @@ class TscPrinter {
     try {
       device = await usb
           .requestDevice(
-            _USBDeviceRequestOptions(
-              filters: <_USBDeviceFilter>[].toJS,
-            ),
-          )
+        _USBDeviceRequestOptions(filters: <_USBDeviceFilter>[].toJS),
+      )
           .toDart;
     } catch (e) {
-      throw StateError(
-        'No printer selected ($e).',
-      );
+      throw StateError('No printer selected ($e).');
     }
 
     try {
@@ -55,9 +51,9 @@ class TscPrinter {
     } catch (e) {
       throw StateError(
         'Could not open the printer. On Windows this means the TE244 is bound '
-        'to its vendor/usbprint driver, which WebUSB cannot use. Replace its '
-        'driver with WinUSB (run Zadig, select the TSC device, install '
-        'WinUSB), then reconnect and try again. ($e)',
+            'to its vendor/usbprint driver, which WebUSB cannot use. Replace its '
+            'driver with WinUSB (run Zadig, select the TSC device, install '
+            'WinUSB), then reconnect and try again. ($e)',
       );
     }
 
@@ -75,26 +71,19 @@ class TscPrinter {
       }
 
       try {
-        await device.claimInterface(
-          target.interfaceNumber,
-        ).toDart;
+        await device.claimInterface(target.interfaceNumber).toDart;
       } catch (e) {
         throw StateError(
           'The browser blocked access to this printer interface. The TE244 '
-          'is likely enumerating as a USB printer (class 0x07), which WebUSB '
-          'does not allow. Bind it to a WinUSB/libusb driver (e.g. via Zadig) '
-          'and try again. ($e)',
+              'is likely enumerating as a USB printer (class 0x07), which WebUSB '
+              'does not allow. Bind it to a WinUSB/libusb driver (e.g. via Zadig) '
+              'and try again. ($e)',
         );
       }
 
       final tspl = _buildTestLabelTag();
 
-      await device
-          .transferOut(
-            target.endpointNumber,
-            tspl.toJS,
-          )
-          .toDart;
+      await device.transferOut(target.endpointNumber, tspl.toJS).toDart;
     } finally {
       await device.close().toDart;
     }
@@ -115,15 +104,13 @@ class TscPrinter {
   /// - Net weight
   ///
   /// This method is prepared for the Admin printing flow.
-  static Future<void> printProductLabel(
-    ProductModel product,
-  ) async {
+  static Future<void> printProductLabel(ProductModel product) async {
     final usb = _navigator.usb;
 
     if (usb == null) {
       throw UnsupportedError(
         'WebUSB is not supported by this browser. Use a recent Chrome/Edge '
-        'over HTTPS (or localhost).',
+            'over HTTPS (or localhost).',
       );
     }
 
@@ -132,15 +119,11 @@ class TscPrinter {
     try {
       device = await usb
           .requestDevice(
-            _USBDeviceRequestOptions(
-              filters: <_USBDeviceFilter>[].toJS,
-            ),
-          )
+        _USBDeviceRequestOptions(filters: <_USBDeviceFilter>[].toJS),
+      )
           .toDart;
     } catch (e) {
-      throw StateError(
-        'No printer selected ($e).',
-      );
+      throw StateError('No printer selected ($e).');
     }
 
     try {
@@ -148,9 +131,9 @@ class TscPrinter {
     } catch (e) {
       throw StateError(
         'Could not open the printer. On Windows this means the TE244 is bound '
-        'to its vendor/usbprint driver, which WebUSB cannot use. Replace its '
-        'driver with WinUSB (run Zadig, select the TSC device, install '
-        'WinUSB), then reconnect and try again. ($e)',
+            'to its vendor/usbprint driver, which WebUSB cannot use. Replace its '
+            'driver with WinUSB (run Zadig, select the TSC device, install '
+            'WinUSB), then reconnect and try again. ($e)',
       );
     }
 
@@ -168,26 +151,19 @@ class TscPrinter {
       }
 
       try {
-        await device.claimInterface(
-          target.interfaceNumber,
-        ).toDart;
+        await device.claimInterface(target.interfaceNumber).toDart;
       } catch (e) {
         throw StateError(
           'The browser blocked access to this printer interface. The TE244 '
-          'is likely enumerating as a USB printer (class 0x07), which WebUSB '
-          'does not allow. Bind it to a WinUSB/libusb driver (e.g. via Zadig) '
-          'and try again. ($e)',
+              'is likely enumerating as a USB printer (class 0x07), which WebUSB '
+              'does not allow. Bind it to a WinUSB/libusb driver (e.g. via Zadig) '
+              'and try again. ($e)',
         );
       }
 
       final tspl = _buildProductLabel(product);
 
-      await device
-          .transferOut(
-            target.endpointNumber,
-            tspl.toJS,
-          )
-          .toDart;
+      await device.transferOut(target.endpointNumber, tspl.toJS).toDart;
     } finally {
       await device.close().toDart;
     }
@@ -196,9 +172,7 @@ class TscPrinter {
   /// Walks the device's interfaces and returns the first bulk/interrupt OUT
   /// endpoint, preferring a vendor-specific interface (class 0xFF) which
   /// WebUSB is allowed to claim.
-  static _OutEndpoint? _findOutEndpoint(
-    _USBDevice device,
-  ) {
+  static _OutEndpoint? _findOutEndpoint(_USBDevice device) {
     final config = device.configuration;
 
     if (config == null) {
@@ -234,16 +208,10 @@ class TscPrinter {
   /// This layout follows the existing [_buildTestLabelTag()] design.
   ///
   /// The QR code contains the actual 8-digit Product ID.
-  static Uint8List _buildProductLabel(
-    ProductModel product,
-  ) {
-    final productName = _cleanText(
-      product.productName,
-      maxLength: 30,
-    );
+  static Uint8List _buildProductLabel(ProductModel product) {
+    final productName = _cleanText(product.productName, maxLength: 30);
 
-    final grossWeight =
-        product.metalGrams + product.stoneWeight;
+    final grossWeight = product.metalGrams + product.stoneWeight;
 
     final netWeight = product.metalGrams;
 
@@ -252,48 +220,29 @@ class TscPrinter {
       ..writeln('GAP 2 mm,0 mm')
       ..writeln('DIRECTION 1')
       ..writeln('CLS')
-
-      // QR code - actual Product ID.
+    // QR code - actual Product ID.
+      ..writeln('QRCODE 30,40,M,4,A,0,"${product.productId}"')
+    // Company name.
+      ..writeln('TEXT 100,40,"2",0,1,1,"ZOMO JEWELLERS"')
+    // Product name.
+      ..writeln('TEXT 100,70,"2",0,1,1,"$productName"')
+    // Gross weight.
       ..writeln(
-        'QRCODE 30,40 ${product.productId}',
+        'TEXT 100,110,"2",0,1,1,"Gross ${grossWeight.toStringAsFixed(3)}g"',
       )
-
-      // Company name.
+    // Net weight.
       ..writeln(
-        'TEXT 100,40,"2",0,1,1,"ZOMO JEWELLERS"',
+        'TEXT 100,140,"2",0,1,1,"Net ${netWeight.toStringAsFixed(3)}g"',
       )
-
-      // Product name.
-      ..writeln(
-        'TEXT 100,70,"2",0,0,0,"$productName"',
-      )
-
-      // Gross weight.
-      ..writeln(
-        'TEXT 100,90,"2",0,1,0,"Gross ${grossWeight.toStringAsFixed(3)}g"',
-      )
-
-      // Net weight.
-      ..writeln(
-        'TEXT 100,100,"2",0,1,1,"Net ${netWeight.toStringAsFixed(3)}g"',
-      )
-
       ..writeln('PRINT 1,1');
 
-    return Uint8List.fromList(
-      latin1.encode(
-        commands.toString(),
-      ),
-    );
+    return Uint8List.fromList(latin1.encode(commands.toString()));
   }
 
   /// Cleans text before inserting it into a TSPL command.
   ///
   /// TSPL text is enclosed in double quotes, so quotes are removed.
-  static String _cleanText(
-    String value, {
-    required int maxLength,
-  }) {
+  static String _cleanText(String value, {required int maxLength}) {
     var text = value
         .replaceAll('"', '')
         .replaceAll('\n', ' ')
@@ -316,26 +265,14 @@ class TscPrinter {
       ..writeln('GAP 2 mm,0 mm')
       ..writeln('DIRECTION 1')
       ..writeln('CLS')
-      ..writeln('QRCODE 30,40 https://www.google.com')
-      ..writeln(
-        'TEXT 100,40,"2",0,1,1,"ZOMO JEWELLERS"',
-      )
-      ..writeln(
-        'TEXT 100,70,"2",0,0,0,"Ring 91.6 carat gold"',
-      )
-      ..writeln(
-        'TEXT 100,90,"2",0,1,0,"Gross 4.6789g"',
-      )
-      ..writeln(
-        'TEXT 100,100,"2",0,1,1,"Net 4.3456g"',
-      )
+      ..writeln('QRCODE 30,40,M,4,A,0,"https://www.google.com"')
+      ..writeln('TEXT 100,40,"2",0,1,1,"ZOMO JEWELLERS"')
+      ..writeln('TEXT 100,70,"2",0,1,1,"Ring 91.6 carat gold"')
+      ..writeln('TEXT 100,110,"2",0,1,1,"Gross 4.6789g"')
+      ..writeln('TEXT 100,140,"2",0,1,1,"Net 4.3456g"')
       ..writeln('PRINT 1,1');
 
-    return Uint8List.fromList(
-      latin1.encode(
-        commands.toString(),
-      ),
-    );
+    return Uint8List.fromList(latin1.encode(commands.toString()));
   }
 
   /// Existing test label.
@@ -345,30 +282,14 @@ class TscPrinter {
     final commands = StringBuffer()
       ..writeln('SIZE 100 mm,15 mm')
       ..writeln('GAP 2 mm,0 mm')
-      ..writeln(
-        'DIRECTION 1',
-      )
-      ..writeln(
-        'CLS',
-      )
-      ..writeln(
-        'TEXT 35,45,"3",0,1,1,"YUKTHA GATTU   Section 3A"',
-      )
-      ..writeln(
-        'TEXT 35,75,"2",0,1,1,"Father 9985319822 Mother 9052736741"',
-      )
-      ..writeln(
-        'TEXT 35,100,"2",0,1,1,"Orchids International School, Uppal"',
-      )
-      ..writeln(
-        'PRINT 1,1',
-      );
+      ..writeln('DIRECTION 1')
+      ..writeln('CLS')
+      ..writeln('TEXT 35,45,"3",0,1,1,"YUKTHA GATTU   Section 3A"')
+      ..writeln('TEXT 35,75,"2",0,1,1,"Father 9985319822 Mother 9052736741"')
+      ..writeln('TEXT 35,100,"2",0,1,1,"Orchids International School, Uppal"')
+      ..writeln('PRINT 1,1');
 
-    return Uint8List.fromList(
-      latin1.encode(
-        commands.toString(),
-      ),
-    );
+    return Uint8List.fromList(latin1.encode(commands.toString()));
   }
 
   /// Existing 50mm x 30mm test label.
@@ -380,28 +301,14 @@ class TscPrinter {
       ..writeln('GAP 2 mm,0 mm')
       ..writeln('DIRECTION 1')
       ..writeln('CLS')
-      ..writeln(
-        'TEXT 30,40,"2",0,1,1,"ZOMO JEWELLERS"',
-      )
-      ..writeln(
-        'TEXT 30,63,"2",0,1,1,"Ring 91.6 carat gold"',
-      )
-      ..writeln(
-        'TEXT 30,90,"2",0,1,1,"Gross 4.6789g"',
-      )
-      ..writeln(
-        'TEXT 30,120,"2",0,1,1,"Net 4.3456g"',
-      )
-      ..writeln(
-        'BARCODE 30,150,"128",60,1,0,2,2,"881771918"',
-      )
+      ..writeln('TEXT 30,40,"2",0,1,1,"ZOMO JEWELLERS"')
+      ..writeln('TEXT 30,63,"2",0,1,1,"Ring 91.6 carat gold"')
+      ..writeln('TEXT 30,90,"2",0,1,1,"Gross 4.6789g"')
+      ..writeln('TEXT 30,120,"2",0,1,1,"Net 4.3456g"')
+      ..writeln('BARCODE 30,150,"128",60,1,0,2,2,"881771918"')
       ..writeln('PRINT 1,1');
 
-    return Uint8List.fromList(
-      latin1.encode(
-        commands.toString(),
-      ),
-    );
+    return Uint8List.fromList(latin1.encode(commands.toString()));
   }
 }
 
@@ -426,72 +333,51 @@ extension type _Navigator._(JSObject _) implements JSObject {
 
 extension type _USB._(JSObject _) implements JSObject {
   external JSPromise<_USBDevice> requestDevice(
-    _USBDeviceRequestOptions options,
-  );
+      _USBDeviceRequestOptions options,
+      );
 }
 
-extension type _USBDeviceRequestOptions._(
-  JSObject _
-) implements JSObject {
+extension type _USBDeviceRequestOptions._(JSObject _) implements JSObject {
   external factory _USBDeviceRequestOptions({
     JSArray<_USBDeviceFilter> filters,
   });
 }
 
-extension type _USBDeviceFilter._(
-  JSObject _
-) implements JSObject {
+extension type _USBDeviceFilter._(JSObject _) implements JSObject {
   external factory _USBDeviceFilter();
 }
 
-extension type _USBDevice._(
-  JSObject _
-) implements JSObject {
+extension type _USBDevice._(JSObject _) implements JSObject {
   external JSPromise<JSAny?> open();
 
-  external JSPromise<JSAny?> selectConfiguration(
-    int configurationValue,
-  );
+  external JSPromise<JSAny?> selectConfiguration(int configurationValue);
 
-  external JSPromise<JSAny?> claimInterface(
-    int interfaceNumber,
-  );
+  external JSPromise<JSAny?> claimInterface(int interfaceNumber);
 
-  external JSPromise<JSAny?> transferOut(
-    int endpointNumber,
-    JSAny data,
-  );
+  external JSPromise<JSAny?> transferOut(int endpointNumber, JSAny data);
 
   external JSPromise<JSAny?> close();
 
   external _USBConfiguration? get configuration;
 }
 
-extension type _USBConfiguration._(
-  JSObject _
-) implements JSObject {
+extension type _USBConfiguration._(JSObject _) implements JSObject {
   external JSArray<_USBInterface> get interfaces;
 }
 
-extension type _USBInterface._(
-  JSObject _
-) implements JSObject {
+extension type _USBInterface._(JSObject _) implements JSObject {
   external int get interfaceNumber;
 
   external _USBAlternateInterface get alternate;
 }
 
-extension type _USBAlternateInterface._(
-  JSObject _
-) implements JSObject {
+extension type _USBAlternateInterface._(JSObject _) implements JSObject {
   external int get interfaceClass;
 
   external JSArray<_USBEndpoint> get endpoints;
 }
 
-extension type _USBEndpoint._(
-  JSObject _
-) implements JSObject {
+extension type _USBEndpoint._(JSObject _) implements JSObject {
   external int get endpointNumber;
 
   external String get direction;
