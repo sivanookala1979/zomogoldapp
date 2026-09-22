@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../services/tsc_printer.dart';
+
+
 import '../theme/app_theme.dart';
 import 'otp_verification_screen.dart';
 
@@ -21,79 +22,113 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     super.dispose();
   }
 
-  Future<void> _testPrint() async {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Sending test label to printer...')),
-    );
-    try {
-      await TscPrinter.printTestLabel();
-      if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Test label sent to TSC TE244.')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text('Print failed: $e')),
-      );
-    }
-  }
+  
 
   Future<void> _sendOtp() async {
     final phone = _phoneController.text.trim();
 
     if (phone.isEmpty || phone.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid phone number')),
+        const SnackBar(
+          content: Text('Please enter a valid phone number'),
+        ),
       );
       return;
     }
 
-    final fullPhone = "+91$phone";
+    final fullPhone = '+91$phone';
 
     try {
       if (kIsWeb) {
+        // Web phone authentication.
+        // Firebase automatically handles the reCAPTCHA flow.
         final confirmationResult =
-        await FirebaseAuth.instance.signInWithPhoneNumber(fullPhone);
+            await FirebaseAuth.instance.signInWithPhoneNumber(fullPhone);
+
+        if (!mounted) return;
+
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                OtpVerificationScreen(confirmationResult: confirmationResult),
+            builder: (_) => OtpVerificationScreen(
+              confirmationResult: confirmationResult,
+            ),
+            settings: RouteSettings(
+              arguments: fullPhone,
+            ),
           ),
         );
       } else {
+        // Android / iOS phone authentication.
         await FirebaseAuth.instance.verifyPhoneNumber(
           phoneNumber: fullPhone,
 
-          verificationCompleted: (PhoneAuthCredential credential) async {
-            await FirebaseAuth.instance.signInWithCredential(credential);
+          verificationCompleted:
+              (PhoneAuthCredential credential) async {
+            await FirebaseAuth.instance.signInWithCredential(
+              credential,
+            );
           },
 
           verificationFailed: (FirebaseAuthException e) {
+            if (!mounted) return;
+
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(e.message ?? "Verification failed")),
-            );
-          },
-          codeSent: (String verificationId, int? resendToken) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    OtpVerificationScreen(verificationId: verificationId),
+              SnackBar(
+                content: Text(
+                  e.message ?? 'Verification failed',
+                ),
               ),
             );
           },
 
-          codeAutoRetrievalTimeout: (String verificationId) {},
+          codeSent: (
+            String verificationId,
+            int? resendToken,
+          ) {
+            if (!mounted) return;
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OtpVerificationScreen(
+                  verificationId: verificationId,
+                ),
+                settings: RouteSettings(
+                  arguments: fullPhone,
+                ),
+              ),
+            );
+          },
+
+          codeAutoRetrievalTimeout: (
+            String verificationId,
+          ) {},
         );
       }
+    } on FirebaseAuthException catch (e) {
+      print(' Firebase Error Code: ${e.code}');
+      print(' Firebase Error Message: ${e.message}');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${e.code}: ${e.message ?? "Authentication failed"}',
+          ),
+        ),
+      );
     } catch (e) {
-      print("🔥 Unknown Error: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      print(' Unknown Error: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
     }
   }
 
@@ -105,31 +140,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            Positioned(
-              top: 16,
-              left: 16,
-              child: OutlinedButton.icon(
-                onPressed: _testPrint,
-                icon: Icon(Icons.print, size: 18, color: AppColors.purple[600]),
-                label: Text(
-                  "Test Print",
-                  style: TextStyle(
-                    color: AppColors.purple[600],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.purple[600]!),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-              ),
-            ),
+            
 
             Positioned(
               top: 16,
@@ -137,7 +148,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
               child: OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.purple[600]!),
+                  side: BorderSide(
+                    color: AppColors.purple[600]!,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -160,7 +173,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
               alignment: Alignment.bottomCenter,
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(
-                  horizontal: size.width > 600 ? size.width * 0.25 : 24,
+                  horizontal:
+                      size.width > 600 ? size.width * 0.25 : 24,
                   vertical: 40,
                 ),
                 child: Column(
@@ -174,7 +188,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     const Text(
                       "Please login to your account",
                       style: TextStyle(
@@ -182,19 +198,26 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                         fontSize: AppText.body,
                       ),
                     ),
+
                     const SizedBox(height: 32),
 
                     const Text("Phone Number"),
+
                     const SizedBox(height: 8),
+
                     TextField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: AppColors.purple[100]!.withOpacity(0.2),
+                        fillColor:
+                            AppColors.purple[100]!.withOpacity(0.2),
                         hintText: "Enter your phone number",
+
                         prefixIcon: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
                           child: Text(
                             '+91',
                             style: TextStyle(
@@ -204,16 +227,21 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                             ),
                           ),
                         ),
-                        prefixIconConstraints: const BoxConstraints(
+
+                        prefixIconConstraints:
+                            const BoxConstraints(
                           minWidth: 0,
                           minHeight: 0,
                         ),
+
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius:
+                              BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 32),
 
                     SizedBox(
@@ -222,9 +250,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       child: ElevatedButton(
                         onPressed: _sendOtp,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.purple[600],
+                          backgroundColor:
+                              AppColors.purple[600],
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius:
+                                BorderRadius.circular(12),
                           ),
                         ),
                         child: const Text(
@@ -237,18 +267,23 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 24),
 
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
                       children: [
-                        const Text("Don't have an account? "),
+                        const Text(
+                          "Don't have an account? ",
+                        ),
                         GestureDetector(
                           onTap: () {},
                           child: Text(
                             "Register",
                             style: TextStyle(
-                              color: AppColors.purple[600],
+                              color:
+                                  AppColors.purple[600],
                               fontWeight: FontWeight.w600,
                             ),
                           ),
