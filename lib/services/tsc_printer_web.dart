@@ -94,14 +94,9 @@ class TscPrinter {
   /// The label uses the same design as [_buildTestLabelTag()].
   ///
   /// Label size:
-  /// 100mm x 15mm
   ///
-  /// Information printed:
-  /// - QR code containing the Product ID
-  /// - ZOMO JEWELLERS
-  /// - Product name
-  /// - Gross weight
-  /// - Net weight
+  ///
+  ///
   ///
   /// This method is prepared for the Admin printing flow.
   static Future<void> printProductLabel(ProductModel product) async {
@@ -203,37 +198,78 @@ class TscPrinter {
     return fallback;
   }
 
-  /// Creates the actual 100mm x 15mm jewellery product label.
+  /// Creates the actual jewellery product label.
   ///
   /// This layout follows the existing [_buildTestLabelTag()] design.
   ///
   /// The QR code contains the actual 8-digit Product ID.
+
+  /// matching the on-screen "Product Label" preview exactly.
   static Uint8List _buildProductLabel(ProductModel product) {
-    final productName = _cleanText(product.productName, maxLength: 30);
-
     final grossWeight = product.metalGrams + product.stoneWeight;
-
     final netWeight = product.metalGrams;
 
+    final productNameText = product.productName.trim().isNotEmpty
+        ? _cleanText(product.productName.trim().toUpperCase(), maxLength: 14)
+        : "JEWELLERY";
+
+    final purityText = switch (product.carats) {
+      14 => "585 G",
+      18 => "750 G",
+      20 => "833 G",
+      22 => "916 G",
+      23 => "958 G",
+      24 => "999 G",
+      _ => "${product.carats} G",
+    };
+
+    final designText = product.designCode.trim().isNotEmpty
+        ? _cleanText("NK / ${product.designCode.trim()}", maxLength: 12)
+        : "NK";
+    // ---- Label: 70mm wide (X) x 11mm tall (Y) = 560 x 88 dots -----------
+    // Four blocks side by side, each 140 dots wide (560 / 4).
+    // Block 1: 0–140    QR + product name
+    // Block 2: 140–280  Brand / PC / purity / design / OCH
+    // Block 3: 280–420  GW / NW / AD
+    // Block 4: 420–560  KUN / ST
     final commands = StringBuffer()
-      ..writeln('SIZE 100 mm,15 mm')
+      ..writeln('SIZE 70 mm,11 mm')
       ..writeln('GAP 2 mm,0 mm')
       ..writeln('DIRECTION 1')
       ..writeln('CLS')
-    // QR code - actual Product ID.
-      ..writeln('QRCODE 30,40,M,4,A,0,"${product.productId}"')
-    // Company name.
-      ..writeln('TEXT 100,40,"2",0,1,1,"ZOMO JEWELLERS"')
-    // Product name.
-      ..writeln('TEXT 100,70,"2",0,1,1,"$productName"')
-    // Gross weight.
+
+    // QR code (Product ID) + product name below it.
+      ..writeln('QRCODE 5,2,M,3,A,0,"${product.productId}"')
+      ..writeln('TEXT 5,70,"1",0,1,1,"$productNameText"')
+
+
+
+    // Brand / PC / purity / design / OCH block.
+      ..writeln('TEXT 145,4,"1",0,1,1,"ZOMO GOLD"')
+      ..writeln('TEXT 145,20,"1",0,1,1,"PC.${product.pieceCount}"')
+      ..writeln('TEXT 145,36,"1",0,1,1,"$purityText"')
+      ..writeln('TEXT 145,52,"1",0,1,1,"$designText"')
+      ..writeln('TEXT 145,68,"1",0,1,1,"OCH: ${product.otherCharges.toStringAsFixed(0)}"')
+
+
+
+    // GW / NW / AD block.
+      ..writeln('TEXT 285,6,"2",0,1,1,"GW: ${grossWeight.toStringAsFixed(2)} g"')
+      ..writeln('TEXT 285,32,"2",0,1,1,"NW: ${netWeight.toStringAsFixed(2)} g"')
       ..writeln(
-        'TEXT 100,110,"2",0,1,1,"Gross ${grossWeight.toStringAsFixed(3)}g"',
+        'TEXT 285,58,"2",0,1,1,"AD: ${product.americanDiamondWeight.toStringAsFixed(2)} / ${product.americanDiamondCount}"',
       )
-    // Net weight.
+
+
+
+    // KUN / ST block.
       ..writeln(
-        'TEXT 100,140,"2",0,1,1,"Net ${netWeight.toStringAsFixed(3)}g"',
+        'TEXT 425,10,"2",0,1,1,"KUN: ${product.kundanWeight.toStringAsFixed(2)} / ${product.kundanCount}"',
       )
+      ..writeln(
+        'TEXT 425,44,"2",0,1,1,"ST: ${product.stoneWeight.toStringAsFixed(2)} / ${product.stoneCount}"',
+      )
+
       ..writeln('PRINT 1,1');
 
     return Uint8List.fromList(latin1.encode(commands.toString()));
