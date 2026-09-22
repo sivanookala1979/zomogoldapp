@@ -407,7 +407,7 @@ class _ProductDetailsViewPageState
                     children: [
 
                       Text(
-                        product!.metalName,
+                        productNameText,
 
                         style: const TextStyle(
                           fontSize: 18,
@@ -659,7 +659,7 @@ class _ProductDetailsViewPageState
                   const SizedBox(height: 12),
 
                   // --------------------------------------------------
-// LABEL PREVIEW
+                  // LABEL PREVIEW
                   // --------------------------------------------------
 
                   Container(
