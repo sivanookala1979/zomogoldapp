@@ -17,7 +17,7 @@ import '../models/product_model.dart';
 /// it exposes a vendor-specific interface (class 0xFF), which WebUSB can claim.
 /// This code looks for such an interface first and falls back to interface 0.
 class TscPrinter {
-  /// Builds a 100mm x 15mm TSPL test label and sends it to a user-selected
+  /// Builds a 70mm x 11mm TSPL test label and sends it to a user-selected
   /// USB printer.
   ///
   /// This method is kept for testing the printer connection.
@@ -224,50 +224,50 @@ class TscPrinter {
     };
 
     final designText = product.designCode.trim().isNotEmpty
-        ? _cleanText("NK / ${product.designCode.trim()}", maxLength: 12)
+        ? _cleanText("NK / ${product.designCode.trim()}", maxLength: 18)
         : "NK";
-    // ---- Label: 70mm wide (X) x 11mm tall (Y) = 560 x 88 dots -----------
+    // ---- Label: 100mm wide (X) x 15mm tall (Y) = 800 x 120 dots -----------
     // Four blocks side by side, each 140 dots wide (560 / 4).
-    // Block 1: 0–140    QR + product name
-    // Block 2: 140–280  Brand / PC / purity / design / OCH
-    // Block 3: 280–420  GW / NW / AD
-    // Block 4: 420–560  KUN / ST
+    // Block 1: 0–200    QR + product name
+    // Block 2: 200–400  Brand / PC / purity / design / OCH
+    // Block 3: 400–600  GW / NW / AD
+    // Block 4: 600–800  KUN / ST
     final commands = StringBuffer()
-      ..writeln('SIZE 70 mm,11 mm')
+      ..writeln('SIZE 100 mm,15 mm')
       ..writeln('GAP 2 mm,0 mm')
       ..writeln('DIRECTION 1')
       ..writeln('CLS')
 
     // QR code (Product ID) + product name below it.
-      ..writeln('QRCODE 5,2,M,3,A,0,"${product.productId}"')
-      ..writeln('TEXT 5,70,"1",0,1,1,"$productNameText"')
+      ..writeln('QRCODE 10,8,M,4,A,0,"${product.productId}"')
+      ..writeln('TEXT 10,100,"1",0,1,1,"$productNameText"')
 
 
 
     // Brand / PC / purity / design / OCH block.
-      ..writeln('TEXT 145,4,"1",0,1,1,"ZOMO GOLD"')
-      ..writeln('TEXT 145,20,"1",0,1,1,"PC.${product.pieceCount}"')
-      ..writeln('TEXT 145,36,"1",0,1,1,"$purityText"')
-      ..writeln('TEXT 145,52,"1",0,1,1,"$designText"')
-      ..writeln('TEXT 145,68,"1",0,1,1,"OCH: ${product.otherCharges.toStringAsFixed(0)}"')
+      ..writeln('TEXT 210,8,"2",0,1,1,"ZOMO GOLD"')
+      ..writeln('TEXT 210,30,"1",0,1,1,"PC.${product.pieceCount}"')
+      ..writeln('TEXT 210,52,"1",0,1,1,"$purityText"')
+      ..writeln('TEXT 210,74,"1",0,1,1,"$designText"')
+      ..writeln('TEXT 210,96,"1",0,1,1,"OCH: ${product.otherCharges.toStringAsFixed(0)}"')
 
 
 
     // GW / NW / AD block.
-      ..writeln('TEXT 285,6,"2",0,1,1,"GW: ${grossWeight.toStringAsFixed(2)} g"')
-      ..writeln('TEXT 285,32,"2",0,1,1,"NW: ${netWeight.toStringAsFixed(2)} g"')
+      ..writeln('TEXT 410,10,"2",0,1,1,"GW: ${grossWeight.toStringAsFixed(2)} g"')
+      ..writeln('TEXT 410,45,"2",0,1,1,"NW: ${netWeight.toStringAsFixed(2)} g"')
       ..writeln(
-        'TEXT 285,58,"2",0,1,1,"AD: ${product.americanDiamondWeight.toStringAsFixed(2)} / ${product.americanDiamondCount}"',
+        'TEXT 410,80,"2",0,1,1,"AD: ${product.americanDiamondWeight.toStringAsFixed(2)} / ${product.americanDiamondCount}"',
       )
 
 
 
     // KUN / ST block.
       ..writeln(
-        'TEXT 425,10,"2",0,1,1,"KUN: ${product.kundanWeight.toStringAsFixed(2)} / ${product.kundanCount}"',
+        'TEXT 610,15,"2",0,1,1,"KUN: ${product.kundanWeight.toStringAsFixed(2)} / ${product.kundanCount}"',
       )
       ..writeln(
-        'TEXT 425,44,"2",0,1,1,"ST: ${product.stoneWeight.toStringAsFixed(2)} / ${product.stoneCount}"',
+        'TEXT 610,65,"2",0,1,1,"ST: ${product.stoneWeight.toStringAsFixed(2)} / ${product.stoneCount}"',
       )
 
       ..writeln('PRINT 1,1');
