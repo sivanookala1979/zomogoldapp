@@ -239,36 +239,38 @@ class TscPrinter {
       ..writeln('CLS')
 
     // QR code (Product ID) + product name below it.
-      ..writeln('QRCODE 10,8,M,4,A,0,"${product.productId}"')
-      ..writeln('TEXT 10,100,"1",0,1,1,"$productNameText"')
+      ..writeln('QRCODE 20,18,M,4,A,0,"${product.productId}"')
+      ..writeln('TEXT 20,100,"1",0,1,1,"$productNameText"')
 
 
 
     // Brand / PC / purity / design / OCH block.
-      ..writeln('TEXT 210,8,"2",0,1,1,"ZOMO GOLD"')
-      ..writeln('TEXT 210,30,"1",0,1,1,"PC.${product.pieceCount}"')
-      ..writeln('TEXT 210,52,"1",0,1,1,"$purityText"')
-      ..writeln('TEXT 210,74,"1",0,1,1,"$designText"')
-      ..writeln('TEXT 210,96,"1",0,1,1,"OCH: ${product.otherCharges.toStringAsFixed(0)}"')
+      ..writeln('TEXT 150,10,"2",0,1,1,"ZOMO GOLD"')
+      ..writeln('TEXT 150,35,"2",0,1,1,"PC.${product.pieceCount}"')
+      ..writeln('TEXT 150,60,"2",0,1,1,"$purityText"')
+      ..writeln('TEXT 150,85,"2",0,1,1,"$designText"')
+      ..writeln('TEXT 150,110,"2",0,1,1,"OCH: ${product.otherCharges.toStringAsFixed(0)}"')
 
 
 
     // GW / NW / AD block.
-      ..writeln('TEXT 410,10,"2",0,1,1,"GW: ${grossWeight.toStringAsFixed(2)} g"')
-      ..writeln('TEXT 410,45,"2",0,1,1,"NW: ${netWeight.toStringAsFixed(2)} g"')
-      ..writeln(
-        'TEXT 410,80,"2",0,1,1,"AD: ${product.americanDiamondWeight.toStringAsFixed(2)} / ${product.americanDiamondCount}"',
-      )
+      ..writeln('TEXT 280,10,"2",0,1,1,"GW: ${grossWeight.toStringAsFixed(2)} g"')
+      ..writeln('TEXT 280,45,"2",0,1,1,"NW: ${netWeight.toStringAsFixed(2)} g"')
+
 
 
 
     // KUN / ST block.
       ..writeln(
-        'TEXT 610,15,"2",0,1,1,"KUN: ${product.kundanWeight.toStringAsFixed(2)} / ${product.kundanCount}"',
+        'TEXT 410,10,"2",0,1,1,"AD: ${product.americanDiamondWeight.toStringAsFixed(2)} / ${product.americanDiamondCount}"',
       )
       ..writeln(
-        'TEXT 610,65,"2",0,1,1,"ST: ${product.stoneWeight.toStringAsFixed(2)} / ${product.stoneCount}"',
+        'TEXT 410,35,"2",0,1,1,"KUN: ${product.kundanWeight.toStringAsFixed(2)} / ${product.kundanCount}"',
       )
+      ..writeln(
+        'TEXT 410,60,"2",0,1,1,"ST: ${product.stoneWeight.toStringAsFixed(2)} / ${product.stoneCount}"',
+      )
+
 
       ..writeln('PRINT 1,1');
 
